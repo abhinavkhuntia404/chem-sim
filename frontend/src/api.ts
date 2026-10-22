@@ -12,7 +12,7 @@ import type {
   EquilibriumCurvePoint,
 } from './types';
 
-const API_BASE = 'http://localhost:8000/api';
+const API_BASE = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000/api';
 
 export async function fetchHealth(): Promise<{ status: string; service: string }> {
   try {
