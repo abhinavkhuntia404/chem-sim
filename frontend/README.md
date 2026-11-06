@@ -1,32 +1,55 @@
-# React + TypeScript + Vite
+# CHEM-SIM — Frontend Application Architecture
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+The **CHEM-SIM** frontend is built with **React 19**, **TypeScript**, and **Vite** following the MANAS Scientific Design System.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 🌟 Modules & Components
 
-## React Compiler
+### 1. Mechanical Operations: Fluidisation Unit
+- **`FluidisedBedApparatus.tsx`**:
+  - High-performance Canvas particle and bubble animation engine.
+  - Realistic transparent acrylic column with metric graduations, bottom gas inlet, perforated distributor plate, and freeboard outlet.
+  - Dynamic bed height cursor ($H$) and differential pressure manometers ($P_1, P_2, P_3, P_4$).
+  - Dual view modes: **Laboratory Apparatus View** and **P&ID Schematic View**.
+  - Interactive clickable hotspots with chemical engineering teaching popups.
+- **`FluidisationChart.tsx`**:
+  - Responsive SVG charts rendering Pressure Drop ($\Delta P$) vs Velocity ($u_0$) and Bed Height ($H$) vs Velocity ($u_0$).
+  - Automatic $u_{mf}$ threshold line marking and real-time operating point indicator.
+- **`FluidisationModule.tsx`**:
+  - Main workbench coordinating parameters, benchmark presets, virtual laboratory experiment steps, and observation logs.
+  - Export data to CSV and generate formal printable Laboratory Experiment Reports.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### 2. Separation Processes: Binary Distillation
+- **`DistillationModule.tsx`**: Constant molar overflow (CMO) McCabe–Thiele stage stepping.
+- **`McCabeThieleChart.tsx`**: Interactive $45^\circ$ line, equilibrium curve, rectifying/stripping operating lines, and $q$-line.
 
-## Expanding the Oxlint configuration
+### 3. Thermal Design: Heat Exchangers
+- **`HeatExchangerModule.tsx`**: Log Mean Temperature Difference (LMTD) rating, countercurrent vs cocurrent flow, and temperature cross detection.
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+### 4. Reaction Engineering: Chemical Kinetics
+- **`ReactorModule.tsx`**: CSTR vs PFR conversion calculations, Damköhler scaling, and Arrhenius kinetics.
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+### 5. Thermodynamics & VLE
+- **`ThermoModule.tsx`**: Antoine vapor pressure equations, bubble/dew point calculations, and NIST pure-component physical database.
+
+### 6. Core Engineering Infrastructure
+- **`api.ts`**: Dual-mode execution engine that communicates with the FastAPI backend and includes a **100% offline first-principles fallback calculation engine** in TypeScript.
+- **`types.ts`**: Shared TypeScript definitions for dimensional safety and engineering types.
+- **`index.css`**: MANAS Scientific Design System styling tokens, grid system, cards, and technical badges.
+
+---
+
+## 🚀 Development & Build
+
+### Development Server
+```bash
+npm install
+npm run dev
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+### Production Build & Typecheck
+```bash
+npm run build
+```
+Generates production assets into `dist/`.

@@ -59,6 +59,7 @@ Designed following the MANAS engineering design principles: transparent assumpti
   - Theory, definitions, and LaTeX-rendered governing equations.
   - Step-by-step guided virtual experiment with real-time condition verification.
   - Live Observation Table with recording, CSV export, and complete printable Laboratory Experiment Report generator.
+  - Comprehensive theory manual available in [`docs/FLUIDISATION_THEORY.md`](docs/FLUIDISATION_THEORY.md).
 
 ### 6. Dimensional Safety & Unit Conversion
 - Integrated unit conversion system enforcing strict dimensional compatibility (Temperature, Pressure, Mass/Molar flow, Heat capacity, Energy, Power).
