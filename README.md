@@ -35,12 +35,37 @@ Designed following the MANAS engineering design principles: transparent assumpti
 - **Antoine Vapor Pressure**: Evaluates saturation pressure $P_{sat}(T)$ over validated ranges.
 - **Vapor–Liquid Equilibrium (VLE)**: Ideal binary mixture flash, bubble-point, dew-point, and relative volatility ($\alpha$).
 
-### 5. Dimensional Safety & Unit Conversion
+### 5. Mechanical Operations: Fluidisation & Packed Bed Dynamics
+- **Photorealistic & Schematic Fluidised Bed Apparatus**:
+  - Transparent cylindrical column with visual lighting, metric graduations, and metal support frame.
+  - Perforated gas distributor plate with jetting orifices.
+  - Particle emulsion phase with live physics response across all hydrodynamic regimes.
+  - Visible rising and coalescing gas bubbles with wakes, bursting at the bed surface with splash.
+  - Dynamic bed height indicator with optical cursor tracking expanded bed level ($H$).
+  - Pressure taps ($P_1, P_2, P_3, P_4$) and digital differential manometer readout.
+  - Interactive clickable hotspots for teaching apparatus components and governing theory.
+- **Scientific Calculations & Correlations**:
+  - **Ergun Equation**: Viscous (Kozeny-Carman) vs inertial (Burke-Plummer) pressure drop decomposition.
+  - **Minimum Fluidisation Velocity ($u_{mf}$)**: Exact Ergun quadratic solution and Wen–Yu (1966) correlation.
+  - **Terminal Settling Velocity ($u_t$)**: Haider & Levenspiel (1989) correlation for single particle free fall.
+  - **Bed Expansion ($H$) & Voidage ($\epsilon$)**: Richardson–Zaki (1954) expansion index and Kunii–Levenspiel bubbling model.
+  - **Geldart Particle Classification**: Automatic determination of Groups A, B, C, and D.
+  - **Hydrodynamic Regimes**: Fixed packed bed, incipient fluidisation, bubbling fluidisation, turbulent churn, and pneumatic transport / entrainment.
+- **Live Interactive Dual Charts**:
+  - Bed Pressure Drop ($\Delta P$) vs Superficial Gas Velocity ($u_0$) with $u_{mf}$ marker, Ergun curve, and buoyant weight plateau.
+  - Expanded Bed Height ($H$) vs Gas Velocity ($u_0$).
+  - Moving operating point tracking user velocity changes.
+- **Teaching Mode & Virtual Laboratory**:
+  - Theory, definitions, and LaTeX-rendered governing equations.
+  - Step-by-step guided virtual experiment with real-time condition verification.
+  - Live Observation Table with recording, CSV export, and complete printable Laboratory Experiment Report generator.
+
+### 6. Dimensional Safety & Unit Conversion
 - Integrated unit conversion system enforcing strict dimensional compatibility (Temperature, Pressure, Mass/Molar flow, Heat capacity, Energy, Power).
 - Rejects incompatible conversions at runtime.
 
-### 6. Data Reporting & Export
-- Instant export of tray data, stream specifications, and thermal ratings to **CSV** and **JSON**.
+### 7. Data Reporting & Export
+- Instant export of tray data, stream specifications, thermal ratings, and fluidisation observation tables to **CSV** and **JSON**.
 
 ---
 
@@ -53,6 +78,7 @@ chem-sim/
 │   │   ├── main.py            # FastAPI entry point & CORS
 │   │   ├── api/               # API routes (/api/v1)
 │   │   ├── core/              # First-principles engineering engines
+│   │   │   ├── fluidisation.py    # Ergun, Wen-Yu, Ar, R-Z bed expansion, Geldart
 │   │   │   ├── distillation.py    # McCabe-Thiele & CMO column solver
 │   │   │   ├── heat_exchanger.py  # LMTD & thermal exchanger rating
 │   │   │   ├── reactor.py         # CSTR / PFR kinetics
@@ -62,16 +88,24 @@ chem-sim/
 │   │   │   ├── material_balance.py# Degrees-of-freedom & stream balances
 │   │   │   └── energy_balance.py  # Enthalpy & sensible/latent duties
 │   │   └── models/            # Pydantic validation schemas
-│   ├── tests/                 # Pytest test suite
+│   ├── tests/                 # Unit & integration test suite
+│   │   ├── test_fluidisation.py # Hydrodynamics & Ergun validation
+│   │   └── test_core.py       # Full suite integration tests
 │   ├── Dockerfile             # Production backend container
 │   └── requirements.txt
 ├── frontend/                  # Vite + React + TypeScript
 │   ├── src/
-│   │   ├── components/        # Data export, charts, badges
-│   │   ├── modules/           # Distillation, HX, Reactor, Thermo, Overview
-│   │   ├── services/          # API client with offline calculation engine
-│   │   ├── styles/            # MANAS scientific design system CSS
-│   │   └── types/             # Shared TypeScript definitions
+│   │   ├── FluidisedBedApparatus.tsx # Visual transparent column, particles & bubbles
+│   │   ├── FluidisationChart.tsx  # Live ΔP & bed height curves with u_mf marker
+│   │   ├── FluidisationModule.tsx # Interactive fluidisation workbench & virtual lab
+│   │   ├── DistillationModule.tsx # Binary McCabe-Thiele simulation
+│   │   ├── HeatExchangerModule.tsx# LMTD rating and exchanger sizing
+│   │   ├── ReactorModule.tsx      # CSTR/PFR kinetics
+│   │   ├── ThermoModule.tsx       # Phase envelopes & Antoine VLE
+│   │   ├── OverviewModule.tsx     # Engineering utilities & module navigation
+│   │   ├── api.ts                 # API client with offline engineering engine
+│   │   ├── types.ts               # Shared TypeScript scientific definitions
+│   │   └── index.css              # MANAS scientific design system styling
 │   ├── Dockerfile             # Production Nginx frontend container
 │   ├── nginx.conf             # Reverse proxy configuration
 │   └── package.json

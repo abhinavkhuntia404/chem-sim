@@ -10,6 +10,10 @@ import type {
   ReactorResult,
   UnitConversionResult,
   EquilibriumCurvePoint,
+  FluidisationPreset,
+  FluidisationParameters,
+  FluidisationSimulationResult,
+  FluidisationCurvePoint,
 } from './types';
 
 const API_BASE = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000/api';
@@ -394,3 +398,331 @@ function computeClientHeatExchanger(p: {
     cold_profile,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Fluidisation API Client & Rigorous Client-side Fallback Engine
+// ---------------------------------------------------------------------------
+
+export async function fetchFluidisationPresets(): Promise<FluidisationPreset[]> {
+  try {
+    const res = await fetch(`${API_BASE}/fluidisation/presets`);
+    if (!res.ok) throw new Error('Failed to fetch presets');
+    return await res.json();
+  } catch {
+    return [
+      {
+        id: 'glass_beads_air',
+        name: 'Glass Beads / Air (Standard Lab Bed)',
+        particle_name: 'Soda-Lime Glass Spheres',
+        gas_name: 'Ambient Air (20°C, 1 atm)',
+        particle_diameter_mm: 0.50,
+        particle_density_kg_m3: 2500.0,
+        gas_density_kg_m3: 1.205,
+        gas_viscosity_Pa_s: 1.82e-5,
+        initial_bed_height_m: 0.40,
+        initial_voidage: 0.40,
+        sphericity: 1.0,
+        nominal_velocity_m_s: 0.28,
+        description: 'Ideal Geldart Group B spherical particles with sharp incipient fluidisation and clear bubbling.'
+      },
+      {
+        id: 'silica_sand_air',
+        name: 'Silica Sand / Air (Industrial)',
+        particle_name: 'Sub-angular Silica Sand',
+        gas_name: 'Air (20°C)',
+        particle_diameter_mm: 0.25,
+        particle_density_kg_m3: 2650.0,
+        gas_density_kg_m3: 1.205,
+        gas_viscosity_Pa_s: 1.82e-5,
+        initial_bed_height_m: 0.35,
+        initial_voidage: 0.42,
+        sphericity: 0.86,
+        nominal_velocity_m_s: 0.12,
+        description: 'Common industrial Geldart Group B sand bed with realistic non-spherical particles.'
+      },
+      {
+        id: 'fcc_catalyst_air',
+        name: 'FCC Catalyst / Air (Petroleum Refining)',
+        particle_name: 'Zeolite / Alumina Microspheres',
+        gas_name: 'Air / Flue Gas',
+        particle_diameter_mm: 0.075,
+        particle_density_kg_m3: 1400.0,
+        gas_density_kg_m3: 1.205,
+        gas_viscosity_Pa_s: 1.82e-5,
+        initial_bed_height_m: 0.50,
+        initial_voidage: 0.45,
+        sphericity: 0.95,
+        nominal_velocity_m_s: 0.045,
+        description: 'Classic Geldart Group A powder exhibiting wide homogenous bed expansion before bubbling onset.'
+      },
+      {
+        id: 'polyethylene_nitrogen',
+        name: 'Polyethylene Pellets / Nitrogen (Polymerisation)',
+        particle_name: 'LLDPE Granules',
+        gas_name: 'Nitrogen (60°C, 20 bar)',
+        particle_diameter_mm: 1.50,
+        particle_density_kg_m3: 920.0,
+        gas_density_kg_m3: 20.4,
+        gas_viscosity_Pa_s: 1.95e-5,
+        initial_bed_height_m: 0.60,
+        initial_voidage: 0.38,
+        sphericity: 0.92,
+        nominal_velocity_m_s: 0.45,
+        description: 'Coarse Geldart Group D polymer pellets under high-pressure gas-phase reactor conditions.'
+      }
+    ];
+  }
+}
+
+export async function simulateFluidisation(params: FluidisationParameters): Promise<FluidisationSimulationResult> {
+  try {
+    const res = await fetch(`${API_BASE}/fluidisation/simulate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+    });
+    if (!res.ok) throw new Error('Fluidisation API request failed');
+    return await res.json();
+  } catch {
+    // Pure client-side first-principles engineering fallback
+    return computeClientFluidisation(params);
+  }
+}
+
+export function computeClientFluidisation(p: FluidisationParameters): FluidisationSimulationResult {
+  const g = 9.80665;
+  const dp = Math.max(1e-6, p.particle_diameter_m);
+  const rho_p = Math.max(100, p.particle_density_kg_m3);
+  const rho_g = Math.max(0.01, p.gas_density_kg_m3);
+  const mu = Math.max(1e-7, p.gas_viscosity_Pa_s);
+  const u0 = Math.max(0, p.gas_velocity_m_s);
+  const H0 = Math.max(0.01, p.initial_bed_height_m);
+  const eps0 = Math.max(0.20, Math.min(0.70, p.initial_voidage ?? 0.40));
+  const phi_s = Math.max(0.30, Math.min(1.0, p.sphericity ?? 1.0));
+  const Dc = Math.max(0.02, p.column_diameter_m ?? 0.10);
+  const sigma = Math.max(0.005, p.distributor_open_ratio ?? 0.04);
+  const Cd = Math.max(0.2, p.distributor_Cd ?? 0.62);
+
+  const warnings: string[] = [];
+  if (rho_p <= rho_g) {
+    warnings.push('Particle density must be greater than gas density for solid downward settling.');
+  }
+
+  // 1. Archimedes number
+  const density_diff = Math.max(1e-6, rho_p - rho_g);
+  const Ar = (Math.pow(dp, 3) * rho_g * density_diff * g) / (mu * mu);
+
+  // 2. Reynolds number at superficial velocity
+  const Re_p = (rho_g * u0 * dp) / mu;
+
+  // 3. Wen-Yu correlation for u_mf
+  const C1 = 33.7;
+  const C2 = 0.0408;
+  const re_mf_wy = Math.max(1e-6, Math.sqrt(Math.max(0, C1 * C1 + C2 * Ar)) - C1);
+  const u_mf_wy = (re_mf_wy * mu) / (rho_g * dp);
+
+  // 4. Ergun quadratic for u_mf
+  const A = 1.75 / (phi_s * Math.pow(eps0, 3));
+  const B = (150.0 * (1.0 - eps0)) / (phi_s * phi_s * Math.pow(eps0, 3));
+  const disc = B * B + 4.0 * A * Ar;
+  const re_mf_erg = Math.max(1e-6, (-B + Math.sqrt(Math.max(0, disc))) / (2.0 * A));
+  const u_mf_erg = (re_mf_erg * mu) / (rho_g * dp);
+
+  // Design u_mf is Ergun with specified sphericity & voidage
+  const u_mf = u_mf_erg;
+  const re_mf = re_mf_erg;
+
+  // 5. Terminal settling velocity (Haider & Levenspiel 1989)
+  const d_star = Math.pow(Ar, 1.0 / 3.0);
+  const term1 = 18.0 / (d_star * d_star);
+  const term2 = (2.335 - 1.744 * phi_s) / Math.sqrt(Math.max(1e-6, d_star));
+  const u_star = 1.0 / (term1 + term2);
+  const scale_factor = Math.pow((mu * density_diff * g) / (rho_g * rho_g), 1.0 / 3.0);
+  const u_t = u_star * scale_factor;
+  const re_t = (rho_g * u_t * dp) / mu;
+
+  // Richardson-Zaki exponent
+  let n_rz = 4.65;
+  if (re_t >= 0.2 && re_t < 1.0) n_rz = 4.40 * Math.pow(re_t, -0.03);
+  else if (re_t >= 1.0 && re_t < 500.0) n_rz = 4.40 * Math.pow(re_t, -0.10);
+  else if (re_t >= 500.0) n_rz = 2.40;
+
+  // 6. Bed pressure drop & expansion
+  const delta_p_bed_max = (1.0 - eps0) * density_diff * g * H0;
+
+  const term_visc = (150.0 * Math.pow(1.0 - eps0, 2) * mu * u0) / (phi_s * phi_s * Math.pow(eps0, 3) * dp * dp);
+  const term_inert = (1.75 * (1.0 - eps0) * rho_g * u0 * u0) / (phi_s * Math.pow(eps0, 3) * dp);
+  const ergun_viscous_Pa = term_visc * H0;
+  const ergun_inertial_Pa = term_inert * H0;
+  const ergun_total_Pa = ergun_viscous_Pa + ergun_inertial_Pa;
+
+  const is_fluidised = u0 >= u_mf;
+  const is_entrained = u0 >= u_t;
+
+  let bed_dp = 0;
+  let expanded_voidage = eps0;
+  let expanded_height = H0;
+  let bubble_fraction = 0;
+  let bubble_diameter = 0;
+
+  if (!is_fluidised) {
+    bed_dp = Math.min(ergun_total_Pa, delta_p_bed_max * 1.06);
+    expanded_voidage = eps0;
+    expanded_height = H0;
+  } else {
+    if (is_entrained) {
+      const entrainment_factor = Math.exp(-0.8 * (u0 - u_t) / Math.max(1e-4, u_t));
+      bed_dp = delta_p_bed_max * Math.max(0.2, entrainment_factor);
+    } else {
+      bed_dp = delta_p_bed_max;
+    }
+
+    const eps_rz = Math.pow(Math.min(0.999, u0 / Math.max(1e-4, u_t)), 1.0 / n_rz);
+    expanded_voidage = Math.max(eps0, Math.min(0.95, eps_rz));
+    expanded_height = (H0 * (1.0 - eps0)) / Math.max(0.05, 1.0 - expanded_voidage);
+
+    if (u0 > u_mf) {
+      const db_calc = (0.54 * Math.pow(u0 - u_mf, 0.4) * Math.pow(H0 * 0.5, 0.8)) / Math.pow(g, 0.2);
+      bubble_diameter = Math.max(0.005, Math.min(Dc * 0.6, db_calc));
+      const u_b = (u0 - u_mf) + 0.711 * Math.sqrt(g * bubble_diameter);
+      bubble_fraction = Math.max(0, Math.min(0.65, (u0 - u_mf) / Math.max(1e-3, u_b)));
+    }
+  }
+
+  // Distributor pressure drop
+  const v_orifice = u0 / (Cd * sigma);
+  const distributor_dp = 0.5 * rho_g * v_orifice * v_orifice;
+  const total_dp = bed_dp + distributor_dp;
+
+  // 7. Geldart classification
+  const dp_um = dp * 1e6;
+  let geldart_group = 'B';
+  let geldart_desc = '';
+  if (dp_um < 30) {
+    geldart_group = 'C';
+    geldart_desc = 'Geldart Group C: Cohesive, very fine powders (dp < 30 µm). Interparticle van der Waals forces dominate. Prone to channeling and cracking.';
+  } else if (dp_um < 100 && density_diff < 1500) {
+    geldart_group = 'A';
+    geldart_desc = 'Geldart Group A: Aeratable powders (dp ~ 30-100 µm, low density). Demonstrates stable homogenous bed expansion (u_mb > u_mf) prior to bubbling.';
+  } else if (dp_um <= 1000) {
+    geldart_group = 'B';
+    geldart_desc = 'Geldart Group B: Sand-like bubbling particles (dp ~ 100-1000 µm). Bubbles form immediately upon fluidisation onset (u_mb ≈ u_mf).';
+  } else {
+    geldart_group = 'D';
+    geldart_desc = 'Geldart Group D: Coarse, spoutable particles (dp > 1000 µm). High fluidisation velocities; large exploding bubbles or spouting.';
+  }
+
+  // 8. Regime
+  let regime = 'Packed Bed';
+  let regime_desc = '';
+  const u_turbulent = 0.45 * u_t;
+
+  if (u0 < 0.95 * u_mf) {
+    regime = 'Packed Bed';
+    regime_desc = `Superficial gas velocity (${u0.toFixed(4)} m/s) is below u_mf (${u_mf.toFixed(4)} m/s). Particles remain stationary in a fixed bed.`;
+  } else if (u0 <= 1.08 * u_mf) {
+    regime = 'Minimum Fluidisation';
+    regime_desc = `Operating at incipient fluidisation (u0 ≈ u_mf = ${u_mf.toFixed(4)} m/s). Total drag balances buoyant bed weight; particles unlock and suspend.`;
+  } else if (u0 < u_turbulent) {
+    regime = 'Bubbling Fluidisation';
+    regime_desc = `Gas velocity (${u0.toFixed(4)} m/s) exceeds u_mf. Excess gas travels upwards as distinct bubbles through the emulsion, causing particle circulation.`;
+  } else if (u0 < u_t) {
+    regime = 'Turbulent Fluidisation';
+    regime_desc = `High gas velocity (${u0.toFixed(4)} m/s) causes bubbles to break down into chaotic voids with intense churning and vigorous splashing.`;
+  } else {
+    regime = 'Entrainment (Fast Fluidisation)';
+    regime_desc = `Gas velocity (${u0.toFixed(4)} m/s) exceeds terminal velocity (${u_t.toFixed(4)} m/s). Particles are continuously elutriated into the gas outlet.`;
+    warnings.push(`Gas velocity (${u0.toFixed(3)} m/s) exceeds terminal velocity (${u_t.toFixed(3)} m/s); particle elutriation occurring.`);
+  }
+
+  // Generate curves if requested
+  const curves: FluidisationCurvePoint[] = [];
+  const n_pts = p.curve_points ?? 50;
+  const u_max = Math.max(u_t * 1.25, u_mf * 3.5, 0.5);
+
+  const velocities: number[] = [0];
+  const n_pack = Math.floor(n_pts / 3);
+  for (let i = 1; i < n_pack; i++) {
+    velocities.push((i / n_pack) * u_mf);
+  }
+  velocities.push(u_mf * 0.96, u_mf * 0.99, u_mf, u_mf * 1.02, u_mf * 1.05);
+  const n_fl = n_pts - velocities.length;
+  for (let i = 1; i <= n_fl; i++) {
+    velocities.push(u_mf * 1.05 + (i / n_fl) * (u_max - u_mf * 1.05));
+  }
+  velocities.sort((a, b) => a - b);
+
+  for (const v of velocities) {
+    const isFl = v >= u_mf;
+    const tv = (150 * Math.pow(1 - eps0, 2) * mu * v) / (phi_s * phi_s * Math.pow(eps0, 3) * dp * dp) * H0;
+    const ti = (1.75 * (1 - eps0) * rho_g * v * v) / (phi_s * Math.pow(eps0, 3) * dp) * H0;
+    const ergTotal = tv + ti;
+
+    let b_dp = 0;
+    let exp_h = H0;
+    let exp_v = eps0;
+    let bf = 0;
+
+    if (!isFl) {
+      b_dp = Math.min(ergTotal, delta_p_bed_max * 1.06);
+    } else {
+      b_dp = v >= u_t ? delta_p_bed_max * Math.max(0.2, Math.exp(-0.8 * (v - u_t) / Math.max(1e-4, u_t))) : delta_p_bed_max;
+      const erz = Math.pow(Math.min(0.999, v / Math.max(1e-4, u_t)), 1 / n_rz);
+      exp_v = Math.max(eps0, Math.min(0.95, erz));
+      exp_h = (H0 * (1 - eps0)) / Math.max(0.05, 1 - exp_v);
+      if (v > u_mf) {
+        const d_b = Math.max(0.005, Math.min(Dc * 0.6, (0.54 * Math.pow(v - u_mf, 0.4) * Math.pow(H0 * 0.5, 0.8)) / Math.pow(g, 0.2)));
+        const ub = (v - u_mf) + 0.711 * Math.sqrt(g * d_b);
+        bf = Math.max(0, Math.min(0.65, (v - u_mf) / Math.max(1e-3, ub)));
+      }
+    }
+    const dist_dp = 0.5 * rho_g * Math.pow(v / (Cd * sigma), 2);
+
+    curves.push({
+      gas_velocity_m_s: Number(v.toFixed(5)),
+      bed_pressure_drop_Pa: Number(b_dp.toFixed(2)),
+      total_pressure_drop_Pa: Number((b_dp + dist_dp).toFixed(2)),
+      distributor_pressure_drop_Pa: Number(dist_dp.toFixed(2)),
+      ergun_theoretical_Pa: Number(ergTotal.toFixed(2)),
+      expanded_bed_height_m: Number(exp_h.toFixed(4)),
+      expanded_voidage: Number(exp_v.toFixed(4)),
+      bubble_fraction: Number(bf.toFixed(4)),
+      is_fluidised: isFl ? 1.0 : 0.0,
+      reynolds_number: Number(((rho_g * v * dp) / mu).toFixed(3)),
+    });
+  }
+
+  return {
+    archimedes_number: Ar,
+    reynolds_number: Re_p,
+    reynolds_number_mf: re_mf,
+    u_mf_wen_yu_m_s: u_mf_wy,
+    u_mf_ergun_m_s: u_mf_erg,
+    u_mf_design_m_s: u_mf,
+    terminal_velocity_m_s: u_t,
+    reynolds_terminal: re_t,
+    bed_pressure_drop_Pa: bed_dp,
+    distributor_pressure_drop_Pa: distributor_dp,
+    total_pressure_drop_Pa: total_dp,
+    ergun_viscous_Pa: ergun_viscous_Pa,
+    ergun_inertial_Pa: ergun_inertial_Pa,
+    theoretical_max_bed_dp_Pa: delta_p_bed_max,
+    expanded_bed_height_m: expanded_height,
+    expanded_voidage: expanded_voidage,
+    bed_expansion_ratio: expanded_height / H0,
+    bubble_fraction: bubble_fraction,
+    estimated_bubble_diameter_m: bubble_diameter,
+    geldart_group: geldart_group,
+    geldart_description: geldart_desc,
+    regime: regime,
+    regime_description: regime_desc,
+    is_fluidised: is_fluidised,
+    is_entrained: is_entrained,
+    velocity_ratio: u0 / Math.max(1e-6, u_mf),
+    dimensionless_velocity: u0 / Math.pow((g * mu) / (rho_g * rho_g), 1.0 / 3.0),
+    richardson_zaki_index: n_rz,
+    warnings: warnings,
+    characteristic_curves: curves,
+  };
+}
+

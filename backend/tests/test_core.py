@@ -163,3 +163,41 @@ def test_api_health_and_endpoints():
     })
     assert res_unit.status_code == 200
     assert pytest.approx(res_unit.json()["result"], 0.01) == 373.15
+
+
+# 8. Fluidisation (Mechanical Operations)
+def test_fluidisation_integration():
+    from app.core.fluidisation import FluidisationInput, simulate_fluidisation
+    
+    inp = FluidisationInput(
+        gas_velocity_m_s=0.25,
+        particle_diameter_m=0.0005,
+        particle_density_kg_m3=2500.0,
+        gas_density_kg_m3=1.205,
+        gas_viscosity_Pa_s=1.82e-5,
+        initial_bed_height_m=0.40,
+    )
+    res = simulate_fluidisation(inp)
+    assert res.archimedes_number > 10000.0
+    assert res.u_mf_design_m_s > 0.10
+    assert res.u_mf_design_m_s < 0.35
+    assert res.geldart_group == "B"
+    assert res.is_fluidised is True
+    assert res.expanded_bed_height_m >= 0.40
+
+    # API endpoint check
+    api_res = client.post("/api/v1/fluidisation/simulate", json={
+        "gas_velocity_m_s": 0.25,
+        "particle_diameter_m": 0.0005,
+        "particle_density_kg_m3": 2500.0,
+        "gas_density_kg_m3": 1.205,
+        "gas_viscosity_Pa_s": 1.82e-5,
+        "initial_bed_height_m": 0.40,
+        "include_curves": True,
+    })
+    assert api_res.status_code == 200
+    data = api_res.json()
+    assert "archimedes_number" in data
+    assert "u_mf_design_m_s" in data
+    assert len(data["characteristic_curves"]) > 10
+

@@ -106,3 +106,106 @@ export interface ReactorResult {
   warnings: string[];
   assumptions: string[];
 }
+
+// ---------------------------------------------------------------------------
+// Fluidisation Module & Mechanical Operations Types
+// ---------------------------------------------------------------------------
+
+export interface FluidisationPreset {
+  id: string;
+  name: string;
+  particle_name: string;
+  gas_name: string;
+  particle_diameter_mm: number;
+  particle_density_kg_m3: number;
+  gas_density_kg_m3: number;
+  gas_viscosity_Pa_s: number;
+  initial_bed_height_m: number;
+  initial_voidage: number;
+  sphericity: number;
+  nominal_velocity_m_s: number;
+  description: string;
+}
+
+export interface FluidisationParameters {
+  gas_velocity_m_s: number;
+  particle_diameter_m: number;
+  particle_density_kg_m3: number;
+  gas_density_kg_m3: number;
+  gas_viscosity_Pa_s: number;
+  initial_bed_height_m: number;
+  column_diameter_m?: number;
+  initial_voidage?: number;
+  sphericity?: number;
+  distributor_open_ratio?: number;
+  distributor_Cd?: number;
+  include_curves?: boolean;
+  curve_points?: number;
+}
+
+export interface FluidisationCurvePoint {
+  gas_velocity_m_s: number;
+  bed_pressure_drop_Pa: number;
+  total_pressure_drop_Pa: number;
+  distributor_pressure_drop_Pa: number;
+  ergun_theoretical_Pa: number;
+  expanded_bed_height_m: number;
+  expanded_voidage: number;
+  bubble_fraction: number;
+  is_fluidised: number;
+  reynolds_number: number;
+}
+
+export interface FluidisationSimulationResult {
+  archimedes_number: number;
+  reynolds_number: number;
+  reynolds_number_mf: number;
+  u_mf_wen_yu_m_s: number;
+  u_mf_ergun_m_s: number;
+  u_mf_design_m_s: number;
+  terminal_velocity_m_s: number;
+  reynolds_terminal: number;
+
+  // Pressure drops (Pa)
+  bed_pressure_drop_Pa: number;
+  distributor_pressure_drop_Pa: number;
+  total_pressure_drop_Pa: number;
+  ergun_viscous_Pa: number;
+  ergun_inertial_Pa: number;
+  theoretical_max_bed_dp_Pa: number;
+
+  // Bed hydrodynamics
+  expanded_bed_height_m: number;
+  expanded_voidage: number;
+  bed_expansion_ratio: number;
+  bubble_fraction: number;
+  estimated_bubble_diameter_m: number;
+
+  // Classification & Regimes
+  geldart_group: string;
+  geldart_description: string;
+  regime: string;
+  regime_description: string;
+  is_fluidised: boolean;
+  is_entrained: boolean;
+
+  // Operational metrics
+  velocity_ratio: number;
+  dimensionless_velocity: number;
+  richardson_zaki_index: number;
+  warnings: string[];
+  characteristic_curves?: FluidisationCurvePoint[];
+}
+
+export interface ObservationPoint {
+  id: string;
+  timestamp: string;
+  velocity_m_s: number;
+  bed_pressure_drop_Pa: number;
+  total_pressure_drop_Pa: number;
+  bed_height_m: number;
+  voidage: number;
+  regime: string;
+  reynolds_number: number;
+}
+

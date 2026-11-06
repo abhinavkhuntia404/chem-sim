@@ -353,3 +353,78 @@ class ReactorResponse(BaseModel):
     rate_constant: float
     warnings: List[str]
     assumptions: List[str]
+
+
+# ---------------------------------------------------------------------------
+# Fluidisation & Mechanical Operations
+# ---------------------------------------------------------------------------
+
+class FluidisationRequest(BaseModel):
+    gas_velocity_m_s: float = Field(ge=0.0, default=0.25)
+    particle_diameter_m: float = Field(gt=0.0, default=0.0005)
+    particle_density_kg_m3: float = Field(gt=0.0, default=2500.0)
+    gas_density_kg_m3: float = Field(gt=0.0, default=1.205)
+    gas_viscosity_Pa_s: float = Field(gt=0.0, default=1.82e-5)
+    initial_bed_height_m: float = Field(gt=0.0, default=0.40)
+    column_diameter_m: float = Field(gt=0.0, default=0.10)
+    initial_voidage: float = Field(ge=0.20, le=0.85, default=0.40)
+    sphericity: float = Field(ge=0.20, le=1.0, default=1.0)
+    distributor_open_ratio: float = Field(ge=0.005, le=0.5, default=0.04)
+    distributor_Cd: float = Field(ge=0.2, le=1.0, default=0.62)
+    include_curves: bool = True
+    curve_points: int = 50
+
+
+class FluidisationCurvePoint(BaseModel):
+    gas_velocity_m_s: float
+    bed_pressure_drop_Pa: float
+    total_pressure_drop_Pa: float
+    distributor_pressure_drop_Pa: float
+    ergun_theoretical_Pa: float
+    expanded_bed_height_m: float
+    expanded_voidage: float
+    bubble_fraction: float
+    is_fluidised: float
+    reynolds_number: float
+
+
+class FluidisationResponse(BaseModel):
+    archimedes_number: float
+    reynolds_number: float
+    reynolds_number_mf: float
+    u_mf_wen_yu_m_s: float
+    u_mf_ergun_m_s: float
+    u_mf_design_m_s: float
+    terminal_velocity_m_s: float
+    reynolds_terminal: float
+
+    # Pressure drops (Pa)
+    bed_pressure_drop_Pa: float
+    distributor_pressure_drop_Pa: float
+    total_pressure_drop_Pa: float
+    ergun_viscous_Pa: float
+    ergun_inertial_Pa: float
+    theoretical_max_bed_dp_Pa: float
+
+    # Bed hydrodynamics
+    expanded_bed_height_m: float
+    expanded_voidage: float
+    bed_expansion_ratio: float
+    bubble_fraction: float
+    estimated_bubble_diameter_m: float
+
+    # Classification & Regimes
+    geldart_group: str
+    geldart_description: str
+    regime: str
+    regime_description: str
+    is_fluidised: bool
+    is_entrained: bool
+
+    # Operational metrics
+    velocity_ratio: float
+    dimensionless_velocity: float
+    richardson_zaki_index: float
+    warnings: List[str]
+    characteristic_curves: Optional[List[FluidisationCurvePoint]] = None
+

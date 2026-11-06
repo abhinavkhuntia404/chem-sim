@@ -15,6 +15,7 @@ from ..models.schemas import (
     HeatExchangerRequest, HeatExchangerResponse,
     StoichiometryRequest, StoichiometryResponse,
     ReactorRequest, ReactorResponse,
+    FluidisationRequest, FluidisationResponse, FluidisationCurvePoint,
 )
 from ..core.units import convert, UnitError, Dimension, list_units
 from ..core.properties import get_component, list_components, COMPONENT_DB
@@ -37,6 +38,9 @@ from ..core.heat_exchanger import (
 from ..core.reactor import (
     ReactionSpec, analyze_stoichiometry,
     batch_reactor, cstr, pfr,
+)
+from ..core.fluidisation import (
+    FluidisationInput, simulate_fluidisation, generate_fluidisation_curves,
 )
 
 
@@ -452,3 +456,132 @@ def run_reactor(req: ReactorRequest):
         )
     except (ValueError, Exception) as e:
         raise HTTPException(400, str(e))
+
+
+# ===== Fluidisation (Mechanical Operations) =====
+
+@router.get("/fluidisation/presets")
+def get_fluidisation_presets():
+    """Return standard chemical engineering benchmark systems."""
+    return [
+        {
+            "id": "glass_beads_air",
+            "name": "Glass Beads / Air (Standard Lab Bed)",
+            "particle_name": "Soda-Lime Glass Spheres",
+            "gas_name": "Ambient Air (20°C, 1 atm)",
+            "particle_diameter_mm": 0.50,
+            "particle_density_kg_m3": 2500.0,
+            "gas_density_kg_m3": 1.205,
+            "gas_viscosity_Pa_s": 1.82e-5,
+            "initial_bed_height_m": 0.40,
+            "initial_voidage": 0.40,
+            "sphericity": 1.0,
+            "nominal_velocity_m_s": 0.28,
+            "description": "Ideal Geldart Group B spherical particles with sharp incipient fluidisation and clear bubbling."
+        },
+        {
+            "id": "silica_sand_air",
+            "name": "Silica Sand / Air (Industrial)",
+            "particle_name": "Sub-angular Silica Sand",
+            "gas_name": "Air (20°C)",
+            "particle_diameter_mm": 0.25,
+            "particle_density_kg_m3": 2650.0,
+            "gas_density_kg_m3": 1.205,
+            "gas_viscosity_Pa_s": 1.82e-5,
+            "initial_bed_height_m": 0.35,
+            "initial_voidage": 0.42,
+            "sphericity": 0.86,
+            "nominal_velocity_m_s": 0.12,
+            "description": "Common industrial Geldart Group B sand bed with realistic non-spherical particles."
+        },
+        {
+            "id": "fcc_catalyst_air",
+            "name": "FCC Catalyst / Air (Petroleum Refining)",
+            "particle_name": "Zeolite / Alumina Microspheres",
+            "gas_name": "Air / Flue Gas",
+            "particle_diameter_mm": 0.075,
+            "particle_density_kg_m3": 1400.0,
+            "gas_density_kg_m3": 1.205,
+            "gas_viscosity_Pa_s": 1.82e-5,
+            "initial_bed_height_m": 0.50,
+            "initial_voidage": 0.45,
+            "sphericity": 0.95,
+            "nominal_velocity_m_s": 0.045,
+            "description": "Classic Geldart Group A powder exhibiting wide homogenous bed expansion before bubbling onset."
+        },
+        {
+            "id": "polyethylene_nitrogen",
+            "name": "Polyethylene Pellets / Nitrogen (Polymerisation)",
+            "particle_name": "LLDPE Granules",
+            "gas_name": "Nitrogen (60°C, 20 bar)",
+            "particle_diameter_mm": 1.50,
+            "particle_density_kg_m3": 920.0,
+            "gas_density_kg_m3": 20.4,
+            "gas_viscosity_Pa_s": 1.95e-5,
+            "initial_bed_height_m": 0.60,
+            "initial_voidage": 0.38,
+            "sphericity": 0.92,
+            "nominal_velocity_m_s": 0.45,
+            "description": "Coarse Geldart Group D polymer pellets under high-pressure gas-phase reactor conditions."
+        }
+    ]
+
+
+@router.post("/fluidisation/simulate", response_model=FluidisationResponse)
+def run_fluidisation(req: FluidisationRequest):
+    try:
+        inp = FluidisationInput(
+            gas_velocity_m_s=req.gas_velocity_m_s,
+            particle_diameter_m=req.particle_diameter_m,
+            particle_density_kg_m3=req.particle_density_kg_m3,
+            gas_density_kg_m3=req.gas_density_kg_m3,
+            gas_viscosity_Pa_s=req.gas_viscosity_Pa_s,
+            initial_bed_height_m=req.initial_bed_height_m,
+            column_diameter_m=req.column_diameter_m,
+            initial_voidage=req.initial_voidage,
+            sphericity=req.sphericity,
+            distributor_open_ratio=req.distributor_open_ratio,
+            distributor_Cd=req.distributor_Cd,
+        )
+        res = simulate_fluidisation(inp)
+        
+        curves = None
+        if req.include_curves:
+            raw_curves = generate_fluidisation_curves(inp, n_points=req.curve_points)
+            curves = [FluidisationCurvePoint(**pt) for pt in raw_curves]
+            
+        return FluidisationResponse(
+            archimedes_number=res.archimedes_number,
+            reynolds_number=res.reynolds_number,
+            reynolds_number_mf=res.reynolds_number_mf,
+            u_mf_wen_yu_m_s=res.u_mf_wen_yu_m_s,
+            u_mf_ergun_m_s=res.u_mf_ergun_m_s,
+            u_mf_design_m_s=res.u_mf_design_m_s,
+            terminal_velocity_m_s=res.terminal_velocity_m_s,
+            reynolds_terminal=res.reynolds_terminal,
+            bed_pressure_drop_Pa=res.bed_pressure_drop_Pa,
+            distributor_pressure_drop_Pa=res.distributor_pressure_drop_Pa,
+            total_pressure_drop_Pa=res.total_pressure_drop_Pa,
+            ergun_viscous_Pa=res.ergun_viscous_Pa,
+            ergun_inertial_Pa=res.ergun_inertial_Pa,
+            theoretical_max_bed_dp_Pa=res.theoretical_max_bed_dp_Pa,
+            expanded_bed_height_m=res.expanded_bed_height_m,
+            expanded_voidage=res.expanded_voidage,
+            bed_expansion_ratio=res.bed_expansion_ratio,
+            bubble_fraction=res.bubble_fraction,
+            estimated_bubble_diameter_m=res.estimated_bubble_diameter_m,
+            geldart_group=res.geldart_group,
+            geldart_description=res.geldart_description,
+            regime=res.regime,
+            regime_description=res.regime_description,
+            is_fluidised=res.is_fluidised,
+            is_entrained=res.is_entrained,
+            velocity_ratio=res.velocity_ratio,
+            dimensionless_velocity=res.dimensionless_velocity,
+            richardson_zaki_index=res.richardson_zaki_index,
+            warnings=res.warnings,
+            characteristic_curves=curves,
+        )
+    except Exception as e:
+        raise HTTPException(400, str(e))
+

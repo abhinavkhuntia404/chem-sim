@@ -6,16 +6,18 @@ import {
   Atom,
   Droplet,
   Beaker,
+  Wind,
 } from 'lucide-react';
 import { DistillationModule } from './DistillationModule';
 import { HeatExchangerModule } from './HeatExchangerModule';
 import { ReactorModule } from './ReactorModule';
 import { ThermoModule } from './ThermoModule';
 import { OverviewModule } from './OverviewModule';
+import { FluidisationModule } from './FluidisationModule';
 import { fetchHealth } from './api';
 
 export function App() {
-  const [activeModule, setActiveModule] = useState<string>('distillation');
+  const [activeModule, setActiveModule] = useState<string>('fluidisation');
   const [engineStatus, setEngineStatus] = useState<string>('Connecting...');
 
   useEffect(() => {
@@ -48,6 +50,8 @@ export function App() {
             <span>Overview & Tools</span>
           </div>
 
+          <div className="nav-section-title">Thermal & Separation</div>
+
           <div
             className={`nav-item ${activeModule === 'distillation' ? 'active' : ''}`}
             onClick={() => setActiveModule('distillation')}
@@ -79,6 +83,16 @@ export function App() {
             <Droplet size={18} />
             <span>Thermodynamics</span>
           </div>
+
+          <div className="nav-section-title">Mechanical Operations</div>
+
+          <div
+            className={`nav-item ${activeModule === 'fluidisation' ? 'active' : ''}`}
+            onClick={() => setActiveModule('fluidisation')}
+          >
+            <Wind size={18} />
+            <span>Fluidisation Unit</span>
+          </div>
         </nav>
 
         <div className="sidebar-footer">
@@ -98,6 +112,7 @@ export function App() {
             {activeModule === 'heat-exchanger' && 'Heat Exchanger Rating & LMTD Design'}
             {activeModule === 'reactor' && 'Chemical Reaction Engineering & Kinetics'}
             {activeModule === 'thermo' && 'Thermodynamic Property Database & Phase Envelopes'}
+            {activeModule === 'fluidisation' && 'Mechanical Operations: Fluidisation & Packed Bed Dynamics'}
           </div>
 
           <div className="top-actions">
@@ -114,6 +129,7 @@ export function App() {
           {activeModule === 'heat-exchanger' && <HeatExchangerModule />}
           {activeModule === 'reactor' && <ReactorModule />}
           {activeModule === 'thermo' && <ThermoModule />}
+          {activeModule === 'fluidisation' && <FluidisationModule />}
         </main>
       </div>
     </div>
