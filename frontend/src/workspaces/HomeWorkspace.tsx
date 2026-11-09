@@ -126,10 +126,79 @@ export function HomeWorkspace({ onNavigate }: HomeWorkspaceProps) {
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
-          {/* Workspace 1: Learn */}
+          {/* Card 1: Visual Concept Studio */}
           <div
             className="eng-card"
             onClick={() => onNavigate('learn')}
+            style={{
+              background: '#0f172a',
+              border: '1.5px solid #0284c7',
+              borderRadius: 8,
+              padding: 18,
+              cursor: 'pointer',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              boxShadow: '0 4px 16px rgba(2, 132, 199, 0.15)',
+            }}
+          >
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                <div style={{ padding: 8, background: '#0284c7', borderRadius: 6, color: '#ffffff' }}>
+                  <Activity size={20} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>Visual Concept Studio</h3>
+                  <span style={{ fontSize: '0.7rem', color: '#38bdf8', fontWeight: 600 }}>ANIMATED 2D PHYSICS</span>
+                </div>
+              </div>
+              <p style={{ fontSize: '0.8rem', color: '#94a3b8', lineHeight: 1.5, margin: 0 }}>
+                Interactive visual physics: Reynolds pipe velocity profiles, heat exchanger temperature gradients (LMTD), CSTR vs PFR conversion, VLE distillation envelopes, and phase rules.
+              </p>
+            </div>
+            <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', fontWeight: 700, color: '#38bdf8' }}>
+              Launch Concept Explorer <ArrowRight size={14} />
+            </div>
+          </div>
+
+          {/* Card 2: Virtual Laboratory Experiments */}
+          <div
+            className="eng-card"
+            onClick={() => onNavigate('lab')}
+            style={{
+              background: '#0f172a',
+              border: '1px solid #10b981',
+              borderRadius: 8,
+              padding: 18,
+              cursor: 'pointer',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+            }}
+          >
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                <div style={{ padding: 8, background: '#047857', borderRadius: 6, color: '#ffffff' }}>
+                  <Compass size={20} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>Virtual Experiments (SOP)</h3>
+                  <span style={{ fontSize: '0.7rem', color: '#34d399', fontWeight: 600 }}>GUIDED LAB PROTOCOLS</span>
+                </div>
+              </div>
+              <p style={{ fontSize: '0.8rem', color: '#94a3b8', lineHeight: 1.5, margin: 0 }}>
+                Step-by-step experiment mode: Objectives, apparatus operation, live observation tables, automated curve plotting, viva questions, and printable laboratory record sheets.
+              </p>
+            </div>
+            <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', fontWeight: 700, color: '#34d399' }}>
+              Conduct Virtual Lab <ArrowRight size={14} />
+            </div>
+          </div>
+
+          {/* Card 3: Academic Curriculum */}
+          <div
+            className="eng-card"
+            onClick={() => onNavigate('academic')}
             style={{
               background: '#0f172a',
               border: '1px solid #1e293b',
@@ -139,7 +208,6 @@ export function HomeWorkspace({ onNavigate }: HomeWorkspaceProps) {
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between',
-              transition: 'border-color 0.15s ease, transform 0.15s ease',
             }}
           >
             <div>
@@ -149,15 +217,15 @@ export function HomeWorkspace({ onNavigate }: HomeWorkspaceProps) {
                 </div>
                 <div>
                   <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>Academic Curriculum</h3>
-                  <span style={{ fontSize: '0.7rem', color: '#38bdf8', fontWeight: 600 }}>SEMESTER III & IV</span>
+                  <span style={{ fontSize: '0.7rem', color: '#38bdf8', fontWeight: 600 }}>VTU & AUTONOMOUS 2026–27</span>
                 </div>
               </div>
               <p style={{ fontSize: '0.8rem', color: '#94a3b8', lineHeight: 1.5, margin: 0 }}>
-                Configurable course curriculum covering Momentum Transfer, Process Calculations, Mechanical Operations, Technical Chemistry, Reaction Engineering, Heat Transfer, and Thermodynamics.
+                Configurable university scheme: Course outcomes, syllabus unit breakdowns, worked engineering problems with step-by-step derivations, and textbook references.
               </p>
             </div>
             <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', fontWeight: 600, color: '#38bdf8' }}>
-              Explore Courses & Syllabi <ArrowRight size={14} />
+              Explore Course Syllabi <ArrowRight size={14} />
             </div>
           </div>
 

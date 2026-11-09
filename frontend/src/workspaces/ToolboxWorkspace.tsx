@@ -301,7 +301,7 @@ export function ToolboxWorkspace() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '0.92rem', fontWeight: 700, color: '#f8fafc' }}>Solved Hydrodynamic Outputs</span>
                 <button
-                  onClick={() => copyToClipboard(`Re=${calcReynolds.toFixed(0)}, f=${calcFriction.toFixed(4)}, dp/L=${(calcPressureDropPerMeter/1000).toFixed(2)} kPa/m`)}
+                  onClick={() => copyToClipboard(`Re=${calcReynolds.toFixed(0)}, f=${calcFriction.toFixed(4)}, dp/L=${(calcPressureDropPerMeter / 1000).toFixed(2)} kPa/m`)}
                   style={{ background: '#1e293b', color: '#94a3b8', border: '1px solid #334155', borderRadius: 4, padding: '3px 8px', fontSize: '0.7rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
                 >
                   <Copy size={12} /> Copy

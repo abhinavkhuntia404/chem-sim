@@ -1045,3 +1045,4 @@ export function DesignWorkspace({ onLaunchSimulation }: DesignWorkspaceProps) {
 }
 
 export default DesignWorkspace;
+
