@@ -218,3 +218,4 @@ Executes full hydrodynamic simulation and generates characteristic curves.
 
 ### `GET /api/v1/fluidisation/presets`
 Returns predefined benchmark systems (Glass Beads / Air, Silica Sand / Air, FCC Catalyst / Air, Polyethylene / Nitrogen).
+

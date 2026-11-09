@@ -14,6 +14,13 @@ import type {
   FluidisationParameters,
   FluidisationSimulationResult,
   FluidisationCurvePoint,
+  PumpGeometryData,
+  PumpComponentData,
+  FluidData,
+  PumpOperatingConditions,
+  PumpPerformancePoint,
+  PumpTelemetry,
+  PumpSimulationResult,
 } from './types';
 
 const API_BASE = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000/api';
@@ -725,4 +732,781 @@ export function computeClientFluidisation(p: FluidisationParameters): Fluidisati
     characteristic_curves: curves,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Centrifugal Pump Digital Twin Client & Fallback Engine
+// ---------------------------------------------------------------------------
+
+export const PUMP_CATALOG_CLIENT: Record<string, PumpGeometryData> = {
+  iso2858_chemical: {
+    id: 'iso2858_chemical',
+    name: 'ISO 2858 Chemical Process Pump (50-32-160)',
+    pump_type: 'radial',
+    impeller_construction: 'closed',
+    casing_design: 'volute',
+    suction_type: 'single_suction',
+    installation_type: 'end_suction',
+    num_stages: 1,
+    rated_speed_rpm: 2900.0,
+    impeller_diameter_m: 0.165,
+    impeller_eye_diameter_m: 0.065,
+    blade_exit_width_m: 0.012,
+    blade_exit_angle_deg: 25.0,
+    blade_count: 6,
+    rated_flow_m3_h: 30.0,
+    rated_head_m: 32.0,
+    rated_efficiency: 0.76,
+    npshr_bep_m: 2.4,
+    motor_power_kw: 5.5,
+    casing_material: 'Cast Stainless 316',
+    impeller_material: 'Cast Stainless 316',
+    seal_type: 'cartridge_mechanical',
+    description: 'Standard single-stage end-suction chemical pump according to ISO 2858.',
+  },
+  split_case_highflow: {
+    id: 'split_case_highflow',
+    name: 'Horizontal Split-Case Double-Suction Pump',
+    pump_type: 'radial',
+    impeller_construction: 'closed',
+    casing_design: 'double_volute',
+    suction_type: 'double_suction',
+    installation_type: 'split_case',
+    num_stages: 1,
+    rated_speed_rpm: 1450.0,
+    impeller_diameter_m: 0.320,
+    impeller_eye_diameter_m: 0.140,
+    blade_exit_width_m: 0.038,
+    blade_exit_angle_deg: 24.0,
+    blade_count: 7,
+    rated_flow_m3_h: 220.0,
+    rated_head_m: 45.0,
+    rated_efficiency: 0.84,
+    npshr_bep_m: 3.2,
+    motor_power_kw: 37.0,
+    casing_material: 'Ductile Iron',
+    impeller_material: 'Cast Bronze',
+    seal_type: 'cartridge_mechanical',
+    description: 'High-flow municipal water supply pump with double-suction impeller for low NPSHr and zero axial thrust.',
+  },
+  multistage_boiler_feed: {
+    id: 'multistage_boiler_feed',
+    name: 'Multistage Ring-Section Feed Pump (4-Stage)',
+    pump_type: 'radial',
+    impeller_construction: 'closed',
+    casing_design: 'diffuser',
+    suction_type: 'single_suction',
+    installation_type: 'end_suction',
+    num_stages: 4,
+    rated_speed_rpm: 2950.0,
+    impeller_diameter_m: 0.180,
+    impeller_eye_diameter_m: 0.070,
+    blade_exit_width_m: 0.010,
+    blade_exit_angle_deg: 26.0,
+    blade_count: 6,
+    rated_flow_m3_h: 40.0,
+    rated_head_m: 160.0,
+    rated_efficiency: 0.74,
+    npshr_bep_m: 2.8,
+    motor_power_kw: 30.0,
+    casing_material: 'Forged Carbon Steel',
+    impeller_material: 'Stainless 316',
+    seal_type: 'cartridge_mechanical',
+    description: 'High-pressure 4-stage diffuser casing pump for industrial boiler feedwater.',
+  },
+  slurry_heavy_duty: {
+    id: 'slurry_heavy_duty',
+    name: 'Heavy-Duty Semi-Open Slurry Pump',
+    pump_type: 'mixed',
+    impeller_construction: 'semi_open',
+    casing_design: 'volute',
+    suction_type: 'single_suction',
+    installation_type: 'end_suction',
+    num_stages: 1,
+    rated_speed_rpm: 1450.0,
+    impeller_diameter_m: 0.280,
+    impeller_eye_diameter_m: 0.110,
+    blade_exit_width_m: 0.045,
+    blade_exit_angle_deg: 28.0,
+    blade_count: 4,
+    rated_flow_m3_h: 90.0,
+    rated_head_m: 25.0,
+    rated_efficiency: 0.68,
+    npshr_bep_m: 3.8,
+    motor_power_kw: 15.0,
+    casing_material: 'High Chrome Iron (27% Cr)',
+    impeller_material: 'High Chrome Iron (27% Cr)',
+    seal_type: 'gland_packing',
+    description: 'Abrasion-resistant heavy slurry pump with wide semi-open 4-vane impeller.',
+  },
+  vertical_inline_circulator: {
+    id: 'vertical_inline_circulator',
+    name: 'Vertical Inline Circulation Pump',
+    pump_type: 'radial',
+    impeller_construction: 'closed',
+    casing_design: 'volute',
+    suction_type: 'single_suction',
+    installation_type: 'inline',
+    num_stages: 1,
+    rated_speed_rpm: 1450.0,
+    impeller_diameter_m: 0.170,
+    impeller_eye_diameter_m: 0.060,
+    blade_exit_width_m: 0.014,
+    blade_exit_angle_deg: 23.0,
+    blade_count: 6,
+    rated_flow_m3_h: 25.0,
+    rated_head_m: 12.0,
+    rated_efficiency: 0.75,
+    npshr_bep_m: 1.8,
+    motor_power_kw: 1.5,
+    casing_material: 'Cast Iron',
+    impeller_material: 'Stainless 304',
+    seal_type: 'single_mechanical',
+    description: 'Space-saving straight-through inline pump for chemical cooling loops.',
+  },
+  magnetic_drive_sealless: {
+    id: 'magnetic_drive_sealless',
+    name: 'Magnetic-Drive Sealless Chemical Pump',
+    pump_type: 'radial',
+    impeller_construction: 'closed',
+    casing_design: 'volute',
+    suction_type: 'single_suction',
+    installation_type: 'end_suction',
+    num_stages: 1,
+    rated_speed_rpm: 2900.0,
+    impeller_diameter_m: 0.150,
+    impeller_eye_diameter_m: 0.055,
+    blade_exit_width_m: 0.010,
+    blade_exit_angle_deg: 24.0,
+    blade_count: 6,
+    rated_flow_m3_h: 18.0,
+    rated_head_m: 24.0,
+    rated_efficiency: 0.70,
+    npshr_bep_m: 2.2,
+    motor_power_kw: 3.0,
+    casing_material: 'PVDF / Silicon Carbide',
+    impeller_material: 'PVDF / NdFeB magnets',
+    seal_type: 'cartridge_mechanical',
+    description: 'Zero-emissions sealless containment can pump for toxic and flammable chemicals.',
+  },
+};
+
+export const FLUID_DATABASE_CLIENT: Record<string, FluidData> = {
+  water: {
+    id: 'water', name: 'Water (Potable)', category: 'Clean Liquids',
+    base_density: 998.2, base_viscosity_pa_s: 1.002e-3, base_vapor_pressure_pa: 2338.0,
+    specific_heat_j_kg_k: 4182.0, thermal_cond_w_m_k: 0.598, rheology_model: 'newtonian',
+    power_law_k: 0.0, power_law_n: 1.0, yield_stress_pa: 0.0,
+    solids_volume_fraction: 0.0, solids_particle_um: 0.0,
+    description: 'Standard reference fluid for pump performance curves.',
+  },
+  distilled_water: {
+    id: 'distilled_water', name: 'Distilled Water', category: 'Clean Liquids',
+    base_density: 997.5, base_viscosity_pa_s: 0.998e-3, base_vapor_pressure_pa: 2340.0,
+    specific_heat_j_kg_k: 4184.0, thermal_cond_w_m_k: 0.600, rheology_model: 'newtonian',
+    power_law_k: 0.0, power_law_n: 1.0, yield_stress_pa: 0.0,
+    solids_volume_fraction: 0.0, solids_particle_um: 0.0,
+    description: 'Pure demineralized water for boiler feed and lab tests.',
+  },
+  seawater: {
+    id: 'seawater', name: 'Seawater (3.5% Salinity)', category: 'Saline Liquids',
+    base_density: 1025.0, base_viscosity_pa_s: 1.08e-3, base_vapor_pressure_pa: 2280.0,
+    specific_heat_j_kg_k: 3993.0, thermal_cond_w_m_k: 0.580, rheology_model: 'newtonian',
+    power_law_k: 0.0, power_law_n: 1.0, yield_stress_pa: 0.0,
+    solids_volume_fraction: 0.0, solids_particle_um: 0.0,
+    description: 'Saline ocean water; requires duplex stainless or bronze impeller.',
+  },
+  brine_20: {
+    id: 'brine_20', name: 'NaCl Brine (20% wt)', category: 'Saline Liquids',
+    base_density: 1150.0, base_viscosity_pa_s: 1.65e-3, base_vapor_pressure_pa: 1850.0,
+    specific_heat_j_kg_k: 3350.0, thermal_cond_w_m_k: 0.540, rheology_model: 'newtonian',
+    power_law_k: 0.0, power_law_n: 1.0, yield_stress_pa: 0.0,
+    solids_volume_fraction: 0.0, solids_particle_um: 0.0,
+    description: 'Dense refrigeration brine solution.',
+  },
+  ethanol: {
+    id: 'ethanol', name: 'Ethanol (99.5%)', category: 'Alcohols',
+    base_density: 789.0, base_viscosity_pa_s: 1.20e-3, base_vapor_pressure_pa: 5870.0,
+    specific_heat_j_kg_k: 2440.0, thermal_cond_w_m_k: 0.171, rheology_model: 'newtonian',
+    power_law_k: 0.0, power_law_n: 1.0, yield_stress_pa: 0.0,
+    solids_volume_fraction: 0.0, solids_particle_um: 0.0,
+    description: 'Volatile organic alcohol with high vapor pressure.',
+  },
+  methanol: {
+    id: 'methanol', name: 'Methanol (Pure)', category: 'Alcohols',
+    base_density: 791.0, base_viscosity_pa_s: 0.59e-3, base_vapor_pressure_pa: 12800.0,
+    specific_heat_j_kg_k: 2510.0, thermal_cond_w_m_k: 0.202, rheology_model: 'newtonian',
+    power_law_k: 0.0, power_law_n: 1.0, yield_stress_pa: 0.0,
+    solids_volume_fraction: 0.0, solids_particle_um: 0.0,
+    description: 'Highly volatile toxic alcohol; requires sealless/mag-drive pump.',
+  },
+  diesel: {
+    id: 'diesel', name: 'Diesel Fuel (No. 2)', category: 'Hydrocarbons',
+    base_density: 840.0, base_viscosity_pa_s: 3.00e-3, base_vapor_pressure_pa: 400.0,
+    specific_heat_j_kg_k: 2000.0, thermal_cond_w_m_k: 0.145, rheology_model: 'newtonian',
+    power_law_k: 0.0, power_law_n: 1.0, yield_stress_pa: 0.0,
+    solids_volume_fraction: 0.0, solids_particle_um: 0.0,
+    description: 'Light hydrocarbon fuel oil.',
+  },
+  light_crude: {
+    id: 'light_crude', name: 'Light Crude Oil (35° API)', category: 'Hydrocarbons',
+    base_density: 850.0, base_viscosity_pa_s: 8.50e-3, base_vapor_pressure_pa: 12000.0,
+    specific_heat_j_kg_k: 1950.0, thermal_cond_w_m_k: 0.133, rheology_model: 'newtonian',
+    power_law_k: 0.0, power_law_n: 1.0, yield_stress_pa: 0.0,
+    solids_volume_fraction: 0.0, solids_particle_um: 0.0,
+    description: 'Live crude oil with dissolved light ends.',
+  },
+  heavy_fuel_oil: {
+    id: 'heavy_fuel_oil', name: 'Heavy Fuel Oil (HFO 380)', category: 'Hydrocarbons',
+    base_density: 985.0, base_viscosity_pa_s: 0.380, base_vapor_pressure_pa: 100.0,
+    specific_heat_j_kg_k: 1750.0, thermal_cond_w_m_k: 0.125, rheology_model: 'newtonian',
+    power_law_k: 0.0, power_law_n: 1.0, yield_stress_pa: 0.0,
+    solids_volume_fraction: 0.0, solids_particle_um: 0.0,
+    description: 'High viscosity fuel requiring ANSI/HI viscosity correction.',
+  },
+  glycerol_85: {
+    id: 'glycerol_85', name: 'Glycerol (85% aqueous)', category: 'Viscous Liquids',
+    base_density: 1220.0, base_viscosity_pa_s: 0.109, base_vapor_pressure_pa: 50.0,
+    specific_heat_j_kg_k: 2620.0, thermal_cond_w_m_k: 0.285, rheology_model: 'newtonian',
+    power_law_k: 0.0, power_law_n: 1.0, yield_stress_pa: 0.0,
+    solids_volume_fraction: 0.0, solids_particle_um: 0.0,
+    description: 'Viscous polyol demonstrating drastic laminar head derating.',
+  },
+  ethylene_glycol: {
+    id: 'ethylene_glycol', name: 'Ethylene Glycol (50% soln)', category: 'Thermal Fluids',
+    base_density: 1065.0, base_viscosity_pa_s: 3.20e-3, base_vapor_pressure_pa: 1100.0,
+    specific_heat_j_kg_k: 3400.0, thermal_cond_w_m_k: 0.420, rheology_model: 'newtonian',
+    power_law_k: 0.0, power_law_n: 1.0, yield_stress_pa: 0.0,
+    solids_volume_fraction: 0.0, solids_particle_um: 0.0,
+    description: 'Industrial heat-transfer and anti-freeze fluid.',
+  },
+  thermal_oil: {
+    id: 'thermal_oil', name: 'Thermal Heat Transfer Oil', category: 'Thermal Fluids',
+    base_density: 870.0, base_viscosity_pa_s: 25.0e-3, base_vapor_pressure_pa: 80.0,
+    specific_heat_j_kg_k: 2100.0, thermal_cond_w_m_k: 0.130, rheology_model: 'newtonian',
+    power_law_k: 0.0, power_law_n: 1.0, yield_stress_pa: 0.0,
+    solids_volume_fraction: 0.0, solids_particle_um: 0.0,
+    description: 'Synthetic heat transfer fluid for temperatures up to 300°C.',
+  },
+  hcl_30: {
+    id: 'hcl_30', name: 'Hydrochloric Acid (30% wt)', category: 'Corrosive Liquids',
+    base_density: 1150.0, base_viscosity_pa_s: 1.70e-3, base_vapor_pressure_pa: 2130.0,
+    specific_heat_j_kg_k: 3000.0, thermal_cond_w_m_k: 0.480, rheology_model: 'newtonian',
+    power_law_k: 0.0, power_law_n: 1.0, yield_stress_pa: 0.0,
+    solids_volume_fraction: 0.0, solids_particle_um: 0.0,
+    description: 'Severe mineral acid; requires ETFE/PTFE lined or Hastelloy-C pump.',
+  },
+  h2so4_50: {
+    id: 'h2so4_50', name: 'Sulfuric Acid (50% wt)', category: 'Corrosive Liquids',
+    base_density: 1395.0, base_viscosity_pa_s: 3.80e-3, base_vapor_pressure_pa: 850.0,
+    specific_heat_j_kg_k: 2600.0, thermal_cond_w_m_k: 0.410, rheology_model: 'newtonian',
+    power_law_k: 0.0, power_law_n: 1.0, yield_stress_pa: 0.0,
+    solids_volume_fraction: 0.0, solids_particle_um: 0.0,
+    description: 'Dense mineral acid requiring Alloy-20 construction.',
+  },
+  naoh_20: {
+    id: 'naoh_20', name: 'Sodium Hydroxide (20% wt)', category: 'Corrosive Liquids',
+    base_density: 1220.0, base_viscosity_pa_s: 4.00e-3, base_vapor_pressure_pa: 1500.0,
+    specific_heat_j_kg_k: 3600.0, thermal_cond_w_m_k: 0.520, rheology_model: 'newtonian',
+    power_law_k: 0.0, power_law_n: 1.0, yield_stress_pa: 0.0,
+    solids_volume_fraction: 0.0, solids_particle_um: 0.0,
+    description: 'Strong caustic alkali; requires nickel-alloy or SS316.',
+  },
+  milk_whole: {
+    id: 'milk_whole', name: 'Whole Milk (Sanitary)', category: 'Food Processing',
+    base_density: 1030.0, base_viscosity_pa_s: 2.10e-3, base_vapor_pressure_pa: 2320.0,
+    specific_heat_j_kg_k: 3930.0, thermal_cond_w_m_k: 0.530, rheology_model: 'newtonian',
+    power_law_k: 0.0, power_law_n: 1.0, yield_stress_pa: 0.0,
+    solids_volume_fraction: 0.0, solids_particle_um: 0.0,
+    description: 'Hygienic food liquid; requires 3A certified polished 316L pump.',
+  },
+  sand_slurry_15: {
+    id: 'sand_slurry_15', name: 'Sand-Water Slurry (15% vol)', category: 'Suspensions',
+    base_density: 1240.0, base_viscosity_pa_s: 8.50e-3, base_vapor_pressure_pa: 2300.0,
+    specific_heat_j_kg_k: 3300.0, thermal_cond_w_m_k: 0.620, rheology_model: 'power_law',
+    power_law_k: 0.015, power_law_n: 0.82, yield_stress_pa: 0.0,
+    solids_volume_fraction: 0.15, solids_particle_um: 120.0,
+    description: 'Abrasive silica slurry; requires high-chrome alloy semi-open impeller.',
+  },
+  municipal_sludge: {
+    id: 'municipal_sludge', name: 'Digested Sewage Sludge (4% solids)', category: 'Wastewater',
+    base_density: 1018.0, base_viscosity_pa_s: 18.0e-3, base_vapor_pressure_pa: 2330.0,
+    specific_heat_j_kg_k: 4050.0, thermal_cond_w_m_k: 0.560, rheology_model: 'bingham',
+    power_law_k: 0.025, power_law_n: 1.0, yield_stress_pa: 12.5,
+    solids_volume_fraction: 0.04, solids_particle_um: 80.0,
+    description: 'Non-Newtonian Bingham plastic sludge.',
+  },
+};
+
+export const PUMP_COMPONENTS_CLIENT: PumpComponentData[] = [
+  {
+    id: 'impeller',
+    name: 'Impeller (Centrifugal Vanes & Shrouds)',
+    category: 'hydraulic',
+    material: 'Cast 316 Stainless Steel / High Chrome Alloy',
+    function: 'Converts mechanical shaft torque into kinetic energy and pressure head in the liquid.',
+    working_principle: 'Fluid enters axially at the eye, is accelerated radially outwards by backward-curved vanes, and discharges at high peripheral tip speed u2.',
+    failure_modes: ['Erosion/corrosion wear', 'Cavitation pitting at blade suction face', 'Foreign object blockage', 'Vane cracking due to hydraulic fatigue'],
+    maintenance_procedure: 'Measure vane tip clearance using feeler gauges; balance dynamically to ISO 1940 Grade G2.5; replace when wall thickness wears > 25%.',
+    exploded_offset: [0.0, 0.0, -120.0],
+  },
+  {
+    id: 'impeller_eye',
+    name: 'Impeller Eye & Inlet Throat',
+    category: 'hydraulic',
+    material: 'Machined 316 Stainless Steel',
+    function: 'Low-pressure fluid entry zone directing axial incoming flow smoothly into the blade passages.',
+    working_principle: 'Flow transition area where lowest static pressure occurs; prime location for vapor inception during cavitation.',
+    failure_modes: ['Cavitation erosion around eye rim', 'Vortex erosion from suction recirculation'],
+    maintenance_procedure: 'Check eye diameter for roundness; inspect for honeycomb cavitation pits.',
+    exploded_offset: [0.0, 0.0, -180.0],
+  },
+  {
+    id: 'volute_casing',
+    name: 'Volute Casing (Spiral Diffuser)',
+    category: 'hydraulic',
+    material: 'Heavy-wall Cast Iron / Cast 316 Stainless Steel',
+    function: 'Collects high-velocity fluid exiting the impeller periphery and converts kinetic energy into static pressure.',
+    working_principle: 'The flow cross-sectional area expands continuously in a logarithmic spiral towards the discharge nozzle, slowing the liquid and recovering pressure according to Bernoulli.',
+    failure_modes: ['Cutwater tongue erosion', 'Casing wall thinning under abrasive slurries', 'Hydraulic overpressure cracking'],
+    maintenance_procedure: 'Ultrasonic wall thickness measurement; inspect cutwater clearance; check casing gasket seating surface.',
+    exploded_offset: [0.0, 0.0, 0.0],
+  },
+  {
+    id: 'wear_rings',
+    name: 'Casing & Impeller Wear Rings',
+    category: 'hydraulic',
+    material: 'Differentially Hardened Stainless 420 / Silicon Carbide / Bronze',
+    function: 'Provides a tight running clearance seal between high-pressure discharge volute and low-pressure suction eye.',
+    working_principle: 'Restricts internal liquid recirculation from discharge back to suction, maintaining volumetric efficiency (typically > 95%).',
+    failure_modes: ['Wear gap expansion causing volumetric efficiency loss', 'Galling/seizure during dry running'],
+    maintenance_procedure: 'Measure diametral clearance; if clearance exceeds 2x original design clearance (standard: 0.3mm to 0.5mm), replace rings.',
+    exploded_offset: [0.0, 0.0, -90.0],
+  },
+  {
+    id: 'shaft',
+    name: 'Drive Shaft & Keyways',
+    category: 'rotating',
+    material: 'High-tensile Alloy Steel 4140 / Duplex Stainless 2205',
+    function: 'Transmits rotational mechanical power and torque from the electric motor to the impeller.',
+    working_principle: 'Subjected to combined torsion from motor drive and alternating bending moments from radial hydraulic loads on the impeller.',
+    failure_modes: ['Shaft fatigue fracture at keyway notch', 'Excessive shaft deflection / runout (> 0.05 mm)', 'Corrosion fretting under sleeve'],
+    maintenance_procedure: 'Check Total Indicated Runout (TIR) with dial indicator (must be < 0.025 mm); dye-penetrant inspect keyway radii.',
+    exploded_offset: [0.0, 0.0, 150.0],
+  },
+  {
+    id: 'shaft_sleeve',
+    name: 'Renewable Shaft Sleeve',
+    category: 'rotating',
+    material: 'Hardened 316 SS with Ceramic / Tungsten Carbide Coating',
+    function: 'Protects the expensive drive shaft from mechanical seal wear, abrasive erosion, and corrosion.',
+    working_principle: 'Sacrificial cylinder clamped or keyed onto the shaft directly beneath the mechanical seal faces and secondary O-rings.',
+    failure_modes: ['Grooving wear under seal faces', 'Fretting corrosion from vibration', 'O-ring extrusion'],
+    maintenance_procedure: 'Replace during every major mechanical seal overhaul; polish surface to Ra < 0.4 µm.',
+    exploded_offset: [0.0, 0.0, 90.0],
+  },
+  {
+    id: 'mechanical_seal',
+    name: 'Cartridge Mechanical Seal',
+    category: 'sealing',
+    material: 'Silicon Carbide vs Carbon / Tungsten Carbide Faces, Hastelloy Springs, Viton / FFKM Elastomers',
+    function: 'Prevents high-pressure process fluid from leaking out of the pump casing along the rotating shaft.',
+    working_principle: 'A rotating seal ring is pressed against a stationary ring by precision spring force, maintaining an ultra-thin (1 µm) lubricating fluid film between the optical flat faces.',
+    failure_modes: ['Seal face thermal cracking from dry running', 'Abrasive particulate scoring', 'Elastomer O-ring hardening/chemical attack', 'Spring clogging'],
+    maintenance_procedure: 'Never run dry; verify seal flush plan (Plan 11/53); check leakage rate (< 5 drops/min); replace cartridge if face gap opens.',
+    exploded_offset: [0.0, 0.0, 60.0],
+  },
+  {
+    id: 'bearings',
+    name: 'Radial & Thrust Ball / Roller Bearings',
+    category: 'supporting',
+    material: 'Vacuum Degassed 52100 Chrome Bearing Steel',
+    function: 'Supports the rotating shaft assembly, maintaining concentric alignment and absorbing radial and axial hydraulic thrust loads.',
+    working_principle: 'Deep groove ball bearing at pump end absorbs radial load; back-to-back angular contact pairs at drive end absorb bidirectional axial thrust.',
+    failure_modes: ['Fatigue spalling of races', 'Contamination by water/seal flush', 'Inadequate lubrication / overheating (> 85°C)', 'False brinelling from vibration'],
+    maintenance_procedure: 'Monitor vibration velocity (RMS) and shock pulse / PeakVue; replace oil every 3000 operating hours; replace bearings before L10 life expires.',
+    exploded_offset: [0.0, 0.0, 220.0],
+  },
+  {
+    id: 'bearing_housing',
+    name: 'Bearing Housing & Oil Sump',
+    category: 'supporting',
+    material: 'Cast Iron ASTM A48 Class 30',
+    function: 'Encloses and rigidly supports bearings, houses lubricating oil sump, constant-level oiler, and cooling jacket.',
+    working_principle: 'Dissipates bearing friction heat; includes labyrinth oil seals to prevent lubricant egress and atmospheric dirt ingress.',
+    failure_modes: ['Lubricant oil leakage past labyrinth seals', 'Condensation moisture contamination', 'Cracked foot mounting'],
+    maintenance_procedure: 'Check oil sight glass level at centerline of lowest ball; drain and inspect magnetic drain plug for metallic debris.',
+    exploded_offset: [0.0, 0.0, 180.0],
+  },
+  {
+    id: 'suction_nozzle',
+    name: 'Suction Nozzle & Flange',
+    category: 'hydraulic',
+    material: 'Cast 316 Stainless Steel (ANSI / DIN Flanged)',
+    function: 'Connects the pump intake to the suction piping system; establishes smooth velocity distribution into the impeller eye.',
+    working_principle: 'Conical converging transition reducing entrance vortexing and minimizing suction head losses.',
+    failure_modes: ['Pipe strain transmitting excessive nozzle loading', 'Cavitation erosion at throat', 'Flange face leakage'],
+    maintenance_procedure: 'Verify pipe stress alignment using dial indicators before tightening flange bolts; torque bolts in cross-pattern.',
+    exploded_offset: [0.0, 0.0, -260.0],
+  },
+  {
+    id: 'discharge_nozzle',
+    name: 'Discharge Nozzle & Diffuser Throat',
+    category: 'hydraulic',
+    material: 'Cast 316 Stainless Steel (ANSI / DIN Flanged)',
+    function: 'Discharges high-pressure fluid into the process piping system.',
+    working_principle: 'Divergent nozzle providing final kinetic to static pressure head recovery.',
+    failure_modes: ['Water hammer / surge cracking', 'Erosion at high velocity', 'Gasket blowout'],
+    maintenance_procedure: 'Install check valve to eliminate reverse flow and water hammer; inspect internal throat for cavitation/erosion.',
+    exploded_offset: [0.0, 180.0, 0.0],
+  },
+  {
+    id: 'motor_coupling',
+    name: 'Flexible Spacer Coupling & Electric Motor',
+    category: 'supporting',
+    material: 'Cast Iron Hubs with Polyurethane / Elastomeric Sleeve',
+    function: 'Transmits drive torque while accommodating minor thermal expansion, angular, and parallel shaft misalignments.',
+    working_principle: 'Rotational shear through flexible elastomeric spider element isolates vibration and cushions startup shock.',
+    failure_modes: ['Elastomer element shredding from severe misalignment', 'Coupling bolt loosening', 'Excessive 1X/2X shaft vibration'],
+    maintenance_procedure: 'Align shafts with laser alignment system to < 0.05 mm parallel and < 0.05° angular tolerance.',
+    exploded_offset: [0.0, 0.0, 320.0],
+  },
+];
+
+export function getFluidPropsAtTemp(fluid: FluidData, tempC: number): {
+  density: number;
+  viscosity: number;
+  vaporPressure: number;
+  cp: number;
+} {
+  const tc = Math.max(-10.0, Math.min(150.0, tempC));
+  const tk = tc + 273.15;
+  const beta = 0.00035;
+  const density = fluid.base_density / (1.0 + beta * (tc - 20.0));
+
+  const eAct = 1800.0;
+  let viscosity = fluid.base_viscosity_pa_s * Math.exp(eAct * (1.0 / tk - 1.0 / 293.15));
+  viscosity = Math.max(1.0e-5, Math.min(100.0, viscosity));
+
+  const deltaHvap = 4800.0;
+  const vpFactor = Math.exp(-deltaHvap * (1.0 / tk - 1.0 / 293.15));
+  let vaporPressure = fluid.base_vapor_pressure_pa * vpFactor;
+  vaporPressure = Math.max(10.0, Math.min(2.5e6, vaporPressure));
+
+  return { density, viscosity, vaporPressure, cp: fluid.specific_heat_j_kg_k };
+}
+
+export function simulatePumpLocal(conditions: PumpOperatingConditions): PumpSimulationResult {
+  const g = 9.80665;
+  const pAtm = 101325.0;
+
+  const pump = PUMP_CATALOG_CLIENT[conditions.pump_id] || PUMP_CATALOG_CLIENT['iso2858_chemical'];
+  const fluid = FLUID_DATABASE_CLIENT[conditions.fluid_id] || FLUID_DATABASE_CLIENT['water'];
+
+  const { density, viscosity, vaporPressure, cp } = getFluidPropsAtTemp(fluid, conditions.fluid_temp_c);
+  const kinViscosityM2S = viscosity / density;
+  const kinViscosityCst = kinViscosityM2S * 1.0e6;
+
+  const speedRpm = Math.max(300.0, Math.min(4000.0, conditions.speed_rpm));
+  const d2 = conditions.impeller_diameter_m || pump.impeller_diameter_m;
+  const speedRatio = speedRpm / pump.rated_speed_rpm;
+  const diaRatio = d2 / pump.impeller_diameter_m;
+
+  const omega = (2.0 * Math.PI * speedRpm) / 60.0;
+  const u2 = (Math.PI * d2 * speedRpm) / 60.0;
+
+  const beta2Rad = (pump.blade_exit_angle_deg * Math.PI) / 180.0;
+  const slipFactor = Math.max(0.70, Math.min(0.95, 1.0 - (Math.PI * Math.sin(beta2Rad)) / pump.blade_count));
+  const eulerHead = ((slipFactor * u2 * u2) / g) * pump.num_stages;
+
+  // HI 9.6.7 Viscosity correction
+  let cH = 1.0;
+  let cQ = 1.0;
+  let cEta = 1.0;
+  let hiApplied = false;
+  if (kinViscosityCst > 1.5) {
+    const bParam =
+      (16.5 * (Math.sqrt(kinViscosityCst) * Math.pow(pump.rated_head_m, 0.25))) /
+      (Math.sqrt(Math.max(1.0, pump.rated_flow_m3_h)) * Math.pow(speedRpm, 0.25));
+    if (bParam >= 1.0) {
+      cH = Math.max(0.40, Math.min(1.0, 1.0 - 0.08 * Math.pow(bParam - 1.0, 0.85)));
+      cQ = Math.max(0.45, Math.min(1.0, 1.0 - 0.12 * Math.pow(bParam - 1.0, 0.80)));
+      cEta = Math.max(0.20, Math.min(1.0, 1.0 - 0.25 * Math.pow(bParam - 1.0, 0.75)));
+      hiApplied = true;
+    }
+  }
+
+  const bepQWater = pump.rated_flow_m3_h * speedRatio * diaRatio;
+  const bepHWater = pump.rated_head_m * Math.pow(speedRatio, 2) * Math.pow(diaRatio, 2);
+  const bepEtaWater = pump.rated_efficiency;
+
+  const bepQ = bepQWater * cQ;
+  const bepH = bepHWater * cH;
+  const bepEta = Math.max(0.15, bepEtaWater * cEta);
+
+  const wearDerate = Math.max(0.0, 1.0 - 0.35 * (conditions.fault_impeller_wear || 0));
+  const gasDerate = Math.max(0.1, 1.0 - 0.08 * (conditions.gas_entrainment_pct || 0));
+
+  const shutoffHead = 1.22 * bepH * wearDerate * gasDerate;
+  const bCoeff = (shutoffHead - bepH) / Math.max(1.0, Math.pow(bepQ, 2));
+
+  // Piping & valves
+  const hStatic = Math.max(0.0, conditions.discharge_static_head_m - conditions.suction_static_head_m);
+  const dSuct = Math.max(0.02, conditions.suction_pipe_dia_m);
+  const dDisc = Math.max(0.02, conditions.discharge_pipe_dia_m);
+  const aSuct = 0.25 * Math.PI * dSuct * dSuct;
+  const aDisc = 0.25 * Math.PI * dDisc * dDisc;
+
+  const kValveSuct = 0.2 + 0.8 * Math.pow((100.0 - conditions.suction_valve_opening_pct) / Math.max(1.0, conditions.suction_valve_opening_pct), 2.5) + (conditions.fault_suction_clog || 0) * 85.0;
+  const kValveDisc = 0.2 + 0.8 * Math.pow((100.0 - conditions.discharge_valve_opening_pct) / Math.max(1.0, conditions.discharge_valve_opening_pct), 2.5) + (conditions.fault_discharge_clog || 0) * 250.0;
+
+  const kMinorSuct = 1.0 + kValveSuct + 0.5;
+  const kMinorDisc = 1.0 + kValveDisc + 1.2;
+
+  const calcSystemHead = (qM3H: number) => {
+    const qM3S = Math.max(0.0, qM3H) / 3600.0;
+    const vSuct = qM3S / aSuct;
+    const vDisc = qM3S / aDisc;
+
+    const reS = (density * vSuct * dSuct) / Math.max(1e-7, viscosity);
+    const reD = (density * vDisc * dDisc) / Math.max(1e-7, viscosity);
+
+    const fS = reS < 2300 ? 64 / Math.max(1, reS) : 0.25 / Math.pow(Math.log10(conditions.pipe_roughness_m / (3.7 * dSuct) + 5.74 / Math.pow(reS, 0.9)), 2);
+    const fD = reD < 2300 ? 64 / Math.max(1, reD) : 0.25 / Math.pow(Math.log10(conditions.pipe_roughness_m / (3.7 * dDisc) + 5.74 / Math.pow(reD, 0.9)), 2);
+
+    const hLossSuct = (fS * (conditions.suction_pipe_length_m / dSuct) + kMinorSuct) * (vSuct * vSuct) / (2.0 * g);
+    const hLossDisc = (fD * (conditions.discharge_pipe_length_m / dDisc) + kMinorDisc) * (vDisc * vDisc) / (2.0 * g);
+
+    return { totalH: hStatic + hLossSuct + hLossDisc, hLossSuct, hLossDisc, vSuct, vDisc, reS, reD };
+  };
+
+  // Operating point intersection solver
+  let operatingQ = bepQ;
+  if (conditions.flow_m3_h !== undefined && conditions.flow_m3_h > 0) {
+    operatingQ = conditions.flow_m3_h;
+  } else {
+    let qLow = 0.0;
+    let qHigh = bepQ * 2.2;
+    for (let i = 0; i < 35; i++) {
+      const qMid = 0.5 * (qLow + qHigh);
+      const hpMid = Math.max(0.0, shutoffHead - bCoeff * qMid * qMid);
+      const hsMid = calcSystemHead(qMid).totalH;
+      if (hpMid > hsMid) qLow = qMid;
+      else qHigh = qMid;
+    }
+    operatingQ = 0.5 * (qLow + qHigh);
+  }
+
+  if ((conditions.fault_dry_run || 0) > 0.5) {
+    operatingQ = 0.0;
+  }
+
+  const sys = calcSystemHead(operatingQ);
+  const operatingH = Math.max(0.0, shutoffHead - bCoeff * operatingQ * operatingQ);
+
+  const qRatio = operatingQ / Math.max(0.001, bepQ);
+  const operatingEff = Math.max(0.05, Math.min(0.92, (bepEta * Math.max(0.05, 1.0 - 0.75 * Math.pow(qRatio - 1.0, 2))) * (1.0 - 0.20 * (conditions.fault_bearing_defect || 0))));
+
+  const qM3S = operatingQ / 3600.0;
+  const hydPowerKw = (density * g * qM3S * operatingH) / 1000.0;
+  const pMechLossKw = (0.05 + 0.15 * (conditions.fault_bearing_defect || 0)) * pump.motor_power_kw;
+  const shaftPowerKw = (conditions.fault_dry_run || 0) > 0.5 ? 0.8 : hydPowerKw / operatingEff + pMechLossKw;
+
+  const motorLoadPct = (shaftPowerKw / Math.max(0.1, pump.motor_power_kw)) * 100.0;
+  const torqueNm = (shaftPowerKw * 1000.0) / Math.max(1.0, omega);
+
+  // Pressures
+  const pSuctAbs = pAtm + density * g * (conditions.suction_static_head_m - sys.hLossSuct) - 0.5 * density * sys.vSuct * sys.vSuct;
+  const suctionPressKpaG = (pSuctAbs - pAtm) / 1000.0;
+  const pDiscAbs = pSuctAbs + density * g * operatingH;
+  const discPressKpaG = (pDiscAbs - pAtm) / 1000.0;
+  const diffPressKpa = discPressKpaG - suctionPressKpaG;
+
+  // NPSH
+  const npshaM = Math.max(0.0, pSuctAbs - vaporPressure) / (density * g) + (sys.vSuct * sys.vSuct) / (2.0 * g);
+  const npshrScaled = pump.npshr_bep_m * Math.pow(speedRatio, 1.8) * (1.0 + 0.85 * Math.pow(qRatio - 1.0, 2));
+  const cavMarginM = npshaM - npshrScaled;
+  const isCavitating = cavMarginM < 0.0 || (conditions.fault_cavitation_override || 0) > 0.3;
+  const cavSeverityPct = isCavitating ? Math.min(100.0, (Math.max(0, -cavMarginM) / Math.max(0.1, npshrScaled)) * 100.0 + (conditions.fault_cavitation_override || 0) * 100.0) : 0.0;
+
+  // Thermal rise
+  const massFlowKgS = density * qM3S;
+  const powerLossesW = Math.max(0.0, (shaftPowerKw - hydPowerKw) * 1000.0);
+  const tempRiseC = massFlowKgS > 0.05 ? powerLossesW / (massFlowKgS * cp) : Math.min(95.0, powerLossesW / 250.0);
+
+  // Mechanical loads
+  const axialThrustN = pump.suction_type === 'double_suction' ? 50.0 : (diffPressKpa * 1000.0) * (0.25 * Math.PI * d2 * d2 * 0.28 - 0.25 * Math.PI * 0.035 * 0.035) / pump.num_stages;
+  const kr = (0.08 + 0.28 * Math.pow(1.0 - Math.min(1.0, qRatio), 2)) * (pump.casing_design === 'double_volute' ? 0.3 : 1.0);
+  const radialThrustN = kr * density * g * (operatingH / pump.num_stages) * d2 * pump.blade_exit_width_m;
+
+  // Telemetry gauges
+  let vibe = 1.2 * (speedRpm / 1500.0);
+  if (isCavitating) vibe += 4.5 * (cavSeverityPct / 100.0);
+  vibe += (conditions.fault_bearing_defect || 0) * 7.2 + (conditions.fault_misalignment || 0) * 8.5 + (conditions.fault_impeller_wear || 0) * 3.2;
+
+  let noise = 68.0 + 8.0 * (speedRpm / 2900.0);
+  if (isCavitating) noise += 18.0 * (cavSeverityPct / 100.0);
+  if ((conditions.fault_dry_run || 0) > 0.5) noise += 12.0;
+
+  const bearingTemp = conditions.fluid_temp_c + 25.0 + (conditions.fault_bearing_defect || 0) * 48.0 + (conditions.fault_misalignment || 0) * 22.0;
+  let sealTemp = conditions.fluid_temp_c + 12.0 + tempRiseC;
+  if ((conditions.fault_dry_run || 0) > 0.5) sealTemp += 160.0;
+
+  let sealLeakage = 0.1 + (conditions.fault_seal_leakage || 0) * 220.0;
+  if ((conditions.fault_dry_run || 0) > 0.5) sealLeakage += 45.0;
+
+  const specificSpeedNs = (speedRpm * Math.sqrt(bepQ / 3600.0)) / Math.pow(Math.max(0.1, bepH / pump.num_stages), 0.75);
+
+  const faultAlerts: string[] = [];
+  const warnings: string[] = [];
+
+  if (isCavitating) faultAlerts.push(`CAVITATION INCEPTION: NPSHa (${npshaM.toFixed(2)}m) < NPSHr (${npshrScaled.toFixed(2)}m). Vapor implosions occurring at blade tips.`);
+  if ((conditions.fault_dry_run || 0) > 0.5) faultAlerts.push('CRITICAL: PUMP RUNNING DRY! Mechanical seal faces and wear rings overheating.');
+  if ((conditions.fault_suction_clog || 0) > 0.3) faultAlerts.push('SUCTION STRAINER FOULING: Excessive friction in suction line triggering vacuum collapse.');
+  if ((conditions.fault_discharge_clog || 0) > 0.3 || (operatingQ < 0.1 * bepQ && (conditions.fault_dry_run || 0) < 0.5)) faultAlerts.push(`SHUTOFF / LOW-FLOW RECIRCULATION: Flow below 10% BEP. Thermal temperature rise = +${tempRiseC.toFixed(1)}°C.`);
+  if ((conditions.fault_bearing_defect || 0) > 0.3) faultAlerts.push(`BEARING RACE DEFECT: High vibration (${vibe.toFixed(2)} mm/s) and temp (${bearingTemp.toFixed(1)}°C).`);
+  if ((conditions.fault_seal_leakage || 0) > 0.3) faultAlerts.push(`MECHANICAL SEAL FACE BREACH: Hazardous fluid leakage at ${sealLeakage.toFixed(1)} mL/min.`);
+  if ((conditions.fault_misalignment || 0) > 0.3) faultAlerts.push('SHAFT COUPLING MISALIGNMENT: High 1X/2X radial vibration harmonics detected.');
+  if ((conditions.gas_entrainment_pct || 0) > 2.0) faultAlerts.push(`GAS BINDING RISK: Entrained gas fraction (${conditions.gas_entrainment_pct}%) severely degrading developed head.`);
+
+  if (motorLoadPct > 110.0) warnings.push(`Motor overload: Operating at ${motorLoadPct.toFixed(1)}% of motor rated ${pump.motor_power_kw} kW.`);
+  if (hiApplied) warnings.push(`ANSI/HI 9.6.7 Viscosity correction active: C_H=${cH.toFixed(2)}, C_Q=${cQ.toFixed(2)}, C_eta=${cEta.toFixed(2)}.`);
+
+  // Curves
+  const curves: PumpPerformancePoint[] = [];
+  const steps = 25;
+  const qMaxCurve = bepQ * 1.8;
+  for (let i = 0; i <= steps; i++) {
+    const qCur = (i / steps) * qMaxCurve;
+    const hCur = Math.max(0.0, shutoffHead - bCoeff * qCur * qCur);
+    const qRatioCur = qCur / Math.max(0.001, bepQ);
+    const effCur = Math.max(5.0, Math.min(95.0, bepEta * Math.max(0.05, 1.0 - 0.75 * Math.pow(qRatioCur - 1.0, 2)) * 100.0));
+    const hydPCur = (density * g * (qCur / 3600.0) * hCur) / 1000.0;
+    const shaftPCur = hydPCur / (effCur / 100.0) + pMechLossKw;
+    const npshrCur = npshrScaled * (1.0 + 0.85 * Math.pow(qRatioCur - 1.0, 2));
+    const sysHCur = calcSystemHead(qCur).totalH;
+
+    curves.push({
+      flow_m3_h: Number(qCur.toFixed(2)),
+      head_m: Number(hCur.toFixed(2)),
+      efficiency_pct: Number(effCur.toFixed(1)),
+      hydraulic_power_kw: Number(hydPCur.toFixed(2)),
+      shaft_power_kw: Number(shaftPCur.toFixed(2)),
+      npshr_m: Number(npshrCur.toFixed(2)),
+      system_head_m: Number(sysHCur.toFixed(2)),
+    });
+  }
+
+  const telemetry: PumpTelemetry = {
+    operating_flow_m3_h: Number(operatingQ.toFixed(2)),
+    operating_head_m: Number(operatingH.toFixed(2)),
+    shutoff_head_m: Number(shutoffHead.toFixed(2)),
+    bep_flow_m3_h: Number(bepQ.toFixed(2)),
+    bep_head_m: Number(bepH.toFixed(2)),
+    bep_efficiency_pct: Number((bepEta * 100.0).toFixed(1)),
+    specific_speed_ns: Number(specificSpeedNs.toFixed(1)),
+    hydraulic_power_kw: Number(hydPowerKw.toFixed(2)),
+    shaft_power_kw: Number(shaftPowerKw.toFixed(2)),
+    motor_power_kw: pump.motor_power_kw,
+    efficiency_pct: Number(operatingEff * 100.0).toFixed(1) as any,
+    motor_load_pct: Number(motorLoadPct.toFixed(1)),
+    torque_n_m: Number(torqueNm.toFixed(1)),
+    fluid_temp_rise_c: Number(tempRiseC.toFixed(2)),
+    suction_pressure_kpa_g: Number(suctionPressKpaG.toFixed(1)),
+    discharge_pressure_kpa_g: Number(discPressKpaG.toFixed(1)),
+    differential_pressure_kpa: Number(diffPressKpa.toFixed(1)),
+    suction_velocity_m_s: Number(sys.vSuct.toFixed(2)),
+    discharge_velocity_m_s: Number(sys.vDisc.toFixed(2)),
+    impeller_tip_speed_m_s: Number(u2.toFixed(2)),
+    euler_head_theoretical_m: Number(eulerHead.toFixed(2)),
+    slip_factor: Number(slipFactor.toFixed(3)),
+    npsha_m: Number(npshaM.toFixed(2)),
+    npshr_m: Number(npshrScaled.toFixed(2)),
+    cavitation_margin_m: Number(cavMarginM.toFixed(2)),
+    cavitation_index_sigma: Number((npshaM / Math.max(0.1, operatingH)).toFixed(3)),
+    is_cavitating: isCavitating,
+    cavitation_severity_pct: Number(cavSeverityPct.toFixed(1)),
+    fluid_density_kg_m3: Number(density.toFixed(1)),
+    fluid_dynamic_viscosity_pa_s: Number(viscosity.toFixed(6)),
+    fluid_kinematic_viscosity_cst: Number(kinViscosityCst.toFixed(2)),
+    fluid_vapor_pressure_kpa: Number((vaporPressure / 1000.0).toFixed(2)),
+    reynolds_suction_pipe: Number(sys.reS.toFixed(0)),
+    reynolds_discharge_pipe: Number(sys.reD.toFixed(0)),
+    hi_viscosity_correction_applied: hiApplied,
+    c_head: Number(cH.toFixed(3)),
+    c_flow: Number(cQ.toFixed(3)),
+    c_efficiency: Number(cEta.toFixed(3)),
+    vibration_velocity_mm_s: Number(vibe.toFixed(2)),
+    acoustic_noise_db: Number(noise.toFixed(1)),
+    bearing_temp_c: Number(bearingTemp.toFixed(1)),
+    seal_face_temp_c: Number(sealTemp.toFixed(1)),
+    seal_leakage_rate_ml_min: Number(sealLeakage.toFixed(1)),
+    axial_thrust_n: Number(axialThrustN.toFixed(1)),
+    radial_thrust_n: Number(radialThrustN.toFixed(1)),
+    fault_alerts: faultAlerts,
+    warnings: warnings,
+  };
+
+  return {
+    pump,
+    fluid,
+    conditions,
+    telemetry,
+    characteristic_curve: curves,
+  };
+}
+
+export async function fetchPumps(): Promise<PumpGeometryData[]> {
+  try {
+    const res = await fetch(`${API_BASE}/pumps`);
+    if (!res.ok) throw new Error('API error');
+    return await res.json();
+  } catch {
+    return Object.values(PUMP_CATALOG_CLIENT);
+  }
+}
+
+export async function fetchPump(id: string): Promise<PumpGeometryData> {
+  try {
+    const res = await fetch(`${API_BASE}/pumps/${id}`);
+    if (!res.ok) throw new Error('API error');
+    return await res.json();
+  } catch {
+    return PUMP_CATALOG_CLIENT[id] || PUMP_CATALOG_CLIENT['iso2858_chemical'];
+  }
+}
+
+export async function fetchPumpComponents(pumpId: string): Promise<PumpComponentData[]> {
+  try {
+    const res = await fetch(`${API_BASE}/pumps/${pumpId}/components`);
+    if (!res.ok) throw new Error('API error');
+    return await res.json();
+  } catch {
+    return PUMP_COMPONENTS_CLIENT;
+  }
+}
+
+export async function fetchFluids(): Promise<FluidData[]> {
+  try {
+    const res = await fetch(`${API_BASE}/fluids`);
+    if (!res.ok) throw new Error('API error');
+    return await res.json();
+  } catch {
+    return Object.values(FLUID_DATABASE_CLIENT);
+  }
+}
+
+export async function simulatePump(conditions: PumpOperatingConditions): Promise<PumpSimulationResult> {
+  try {
+    const res = await fetch(`${API_BASE}/simulations/pump/run`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(conditions),
+    });
+    if (!res.ok) throw new Error('Backend failed');
+    return await res.json();
+  } catch {
+    return simulatePumpLocal(conditions);
+  }
+}
+
 

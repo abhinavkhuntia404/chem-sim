@@ -4,7 +4,7 @@ Pydantic models for API request/response validation.
 
 from __future__ import annotations
 from pydantic import BaseModel, Field, field_validator
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Any
 
 
 # ---------------------------------------------------------------------------
@@ -427,4 +427,122 @@ class FluidisationResponse(BaseModel):
     richardson_zaki_index: float
     warnings: List[str]
     characteristic_curves: Optional[List[FluidisationCurvePoint]] = None
+
+
+# ---------------------------------------------------------------------------
+# Centrifugal Pump Digital Twin
+# ---------------------------------------------------------------------------
+
+class PumpOperatingConditionsRequest(BaseModel):
+    pump_id: str = "iso2858_chemical"
+    fluid_id: str = "water"
+    fluid_temp_c: float = 20.0
+    speed_rpm: float = 2900.0
+    flow_m3_h: Optional[float] = None
+    suction_static_head_m: float = 2.0
+    discharge_static_head_m: float = 18.0
+    suction_pipe_dia_m: float = 0.08
+    suction_pipe_length_m: float = 8.0
+    discharge_pipe_dia_m: float = 0.05
+    discharge_pipe_length_m: float = 45.0
+    suction_valve_opening_pct: float = 100.0
+    discharge_valve_opening_pct: float = 80.0
+    pipe_roughness_m: float = 0.000045
+    impeller_diameter_m: Optional[float] = None
+    fault_cavitation_override: float = 0.0
+    fault_dry_run: float = 0.0
+    fault_suction_clog: float = 0.0
+    fault_discharge_clog: float = 0.0
+    fault_impeller_wear: float = 0.0
+    fault_bearing_defect: float = 0.0
+    fault_seal_leakage: float = 0.0
+    fault_misalignment: float = 0.0
+    gas_entrainment_pct: float = 0.0
+
+
+class PumpPerformancePointResponse(BaseModel):
+    flow_m3_h: float
+    head_m: float
+    efficiency_pct: float
+    hydraulic_power_kw: float
+    shaft_power_kw: float
+    npshr_m: float
+    system_head_m: float
+
+
+class PumpTelemetryResponse(BaseModel):
+    operating_flow_m3_h: float
+    operating_head_m: float
+    shutoff_head_m: float
+    bep_flow_m3_h: float
+    bep_head_m: float
+    bep_efficiency_pct: float
+    specific_speed_ns: float
+    hydraulic_power_kw: float
+    shaft_power_kw: float
+    motor_power_kw: float
+    efficiency_pct: float
+    motor_load_pct: float
+    torque_n_m: float
+    fluid_temp_rise_c: float
+    suction_pressure_kpa_g: float
+    discharge_pressure_kpa_g: float
+    differential_pressure_kpa: float
+    suction_velocity_m_s: float
+    discharge_velocity_m_s: float
+    impeller_tip_speed_m_s: float
+    euler_head_theoretical_m: float
+    slip_factor: float
+    npsha_m: float
+    npshr_m: float
+    cavitation_margin_m: float
+    cavitation_index_sigma: float
+    is_cavitating: bool
+    cavitation_severity_pct: float
+    fluid_density_kg_m3: float
+    fluid_dynamic_viscosity_pa_s: float
+    fluid_kinematic_viscosity_cst: float
+    fluid_vapor_pressure_kpa: float
+    reynolds_suction_pipe: float
+    reynolds_discharge_pipe: float
+    hi_viscosity_correction_applied: bool
+    c_head: float
+    c_flow: float
+    c_efficiency: float
+    vibration_velocity_mm_s: float
+    acoustic_noise_db: float
+    bearing_temp_c: float
+    seal_face_temp_c: float
+    seal_leakage_rate_ml_min: float
+    axial_thrust_n: float
+    radial_thrust_n: float
+    fault_alerts: List[str]
+    warnings: List[str]
+
+
+class PumpSimulationResponse(BaseModel):
+    pump: Dict[str, Any]
+    fluid: Dict[str, Any]
+    conditions: Dict[str, Any]
+    telemetry: PumpTelemetryResponse
+    characteristic_curve: List[PumpPerformancePointResponse]
+
+
+class CustomFluidRequest(BaseModel):
+    id: str
+    name: str
+    category: str
+    base_density: float
+    base_viscosity_pa_s: float
+    base_vapor_pressure_pa: float
+    specific_heat_j_kg_k: float
+    thermal_cond_w_m_k: float
+    rheology_model: str = "newtonian"
+    power_law_k: float = 0.0
+    power_law_n: float = 1.0
+    yield_stress_pa: float = 0.0
+    solids_volume_fraction: float = 0.0
+    solids_particle_um: float = 0.0
+    description: str = ""
+
 

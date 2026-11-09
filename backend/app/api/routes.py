@@ -16,6 +16,7 @@ from ..models.schemas import (
     StoichiometryRequest, StoichiometryResponse,
     ReactorRequest, ReactorResponse,
     FluidisationRequest, FluidisationResponse, FluidisationCurvePoint,
+    PumpOperatingConditionsRequest, PumpSimulationResponse, PumpPerformancePointResponse, PumpTelemetryResponse, CustomFluidRequest,
 )
 from ..core.units import convert, UnitError, Dimension, list_units
 from ..core.properties import get_component, list_components, COMPONENT_DB
@@ -41,6 +42,10 @@ from ..core.reactor import (
 )
 from ..core.fluidisation import (
     FluidisationInput, simulate_fluidisation, generate_fluidisation_curves,
+)
+from ..core.pump import (
+    simulate_centrifugal_pump, OperatingConditions, FLUID_DATABASE,
+    PUMP_CATALOG, PUMP_COMPONENTS, FluidDefinition,
 )
 
 
@@ -584,4 +589,207 @@ def run_fluidisation(req: FluidisationRequest):
         )
     except Exception as e:
         raise HTTPException(400, str(e))
+
+
+# ===== Centrifugal Pump Digital Twin =====
+
+@router.get("/pumps")
+def list_pumps():
+    """List all available pump catalog models."""
+    return [
+        {
+            "id": p.id,
+            "name": p.name,
+            "pump_type": p.pump_type,
+            "impeller_construction": p.impeller_construction,
+            "casing_design": p.casing_design,
+            "suction_type": p.suction_type,
+            "installation_type": p.installation_type,
+            "num_stages": p.num_stages,
+            "rated_speed_rpm": p.rated_speed_rpm,
+            "impeller_diameter_m": p.impeller_diameter_m,
+            "rated_flow_m3_h": p.rated_flow_m3_h,
+            "rated_head_m": p.rated_head_m,
+            "rated_efficiency": p.rated_efficiency,
+            "motor_power_kw": p.motor_power_kw,
+            "casing_material": p.casing_material,
+            "impeller_material": p.impeller_material,
+            "description": p.description,
+        }
+        for p in PUMP_CATALOG.values()
+    ]
+
+
+@router.get("/pumps/{pump_id}")
+def get_pump(pump_id: str):
+    """Retrieve details for a specific pump model."""
+    if pump_id not in PUMP_CATALOG:
+        raise HTTPException(404, f"Pump model '{pump_id}' not found.")
+    p = PUMP_CATALOG[pump_id]
+    return {
+        "id": p.id,
+        "name": p.name,
+        "pump_type": p.pump_type,
+        "impeller_construction": p.impeller_construction,
+        "casing_design": p.casing_design,
+        "suction_type": p.suction_type,
+        "installation_type": p.installation_type,
+        "num_stages": p.num_stages,
+        "rated_speed_rpm": p.rated_speed_rpm,
+        "impeller_diameter_m": p.impeller_diameter_m,
+        "impeller_eye_diameter_m": p.impeller_eye_diameter_m,
+        "blade_exit_width_m": p.blade_exit_width_m,
+        "blade_exit_angle_deg": p.blade_exit_angle_deg,
+        "blade_count": p.blade_count,
+        "rated_flow_m3_h": p.rated_flow_m3_h,
+        "rated_head_m": p.rated_head_m,
+        "rated_efficiency": p.rated_efficiency,
+        "npshr_bep_m": p.npshr_bep_m,
+        "motor_power_kw": p.motor_power_kw,
+        "casing_material": p.casing_material,
+        "impeller_material": p.impeller_material,
+        "seal_type": p.seal_type,
+        "description": p.description,
+    }
+
+
+@router.get("/pumps/{pump_id}/components")
+def get_pump_components(pump_id: str):
+    """Retrieve internal components and maintenance metadata for a pump."""
+    if pump_id not in PUMP_CATALOG:
+        raise HTTPException(404, f"Pump model '{pump_id}' not found.")
+    return [
+        {
+            "id": c.id,
+            "name": c.name,
+            "category": c.category,
+            "material": c.material,
+            "function": c.function,
+            "working_principle": c.working_principle,
+            "failure_modes": c.failure_modes,
+            "maintenance_procedure": c.maintenance_procedure,
+            "exploded_offset": c.exploded_offset,
+        }
+        for c in PUMP_COMPONENTS
+    ]
+
+
+@router.get("/fluids")
+def list_fluids():
+    """List all available predefined fluids in the library."""
+    return [
+        {
+            "id": f.id,
+            "name": f.name,
+            "category": f.category,
+            "base_density": f.base_density,
+            "base_viscosity_pa_s": f.base_viscosity_pa_s,
+            "base_vapor_pressure_pa": f.base_vapor_pressure_pa,
+            "specific_heat_j_kg_k": f.specific_heat_j_kg_k,
+            "thermal_cond_w_m_k": f.thermal_cond_w_m_k,
+            "rheology_model": f.rheology_model,
+            "power_law_k": f.power_law_k,
+            "power_law_n": f.power_law_n,
+            "yield_stress_pa": f.yield_stress_pa,
+            "solids_volume_fraction": f.solids_volume_fraction,
+            "solids_particle_um": f.solids_particle_um,
+            "description": f.description,
+        }
+        for f in FLUID_DATABASE.values()
+    ]
+
+
+@router.get("/fluids/{fluid_id}")
+def get_fluid(fluid_id: str):
+    """Retrieve details for a specific fluid."""
+    if fluid_id not in FLUID_DATABASE:
+        raise HTTPException(404, f"Fluid '{fluid_id}' not found.")
+    f = FLUID_DATABASE[fluid_id]
+    return {
+        "id": f.id,
+        "name": f.name,
+        "category": f.category,
+        "base_density": f.base_density,
+        "base_viscosity_pa_s": f.base_viscosity_pa_s,
+        "base_vapor_pressure_pa": f.base_vapor_pressure_pa,
+        "specific_heat_j_kg_k": f.specific_heat_j_kg_k,
+        "thermal_cond_w_m_k": f.thermal_cond_w_m_k,
+        "rheology_model": f.rheology_model,
+        "power_law_k": f.power_law_k,
+        "power_law_n": f.power_law_n,
+        "yield_stress_pa": f.yield_stress_pa,
+        "solids_volume_fraction": f.solids_volume_fraction,
+        "solids_particle_um": f.solids_particle_um,
+        "description": f.description,
+    }
+
+
+@router.post("/fluids/custom")
+def add_custom_fluid(req: CustomFluidRequest):
+    """Register a new user-defined custom fluid."""
+    new_fluid = FluidDefinition(
+        id=req.id,
+        name=req.name,
+        category=req.category,
+        base_density=req.base_density,
+        base_viscosity_pa_s=req.base_viscosity_pa_s,
+        base_vapor_pressure_pa=req.base_vapor_pressure_pa,
+        specific_heat_j_kg_k=req.specific_heat_j_kg_k,
+        thermal_cond_w_m_k=req.thermal_cond_w_m_k,
+        rheology_model=req.rheology_model,
+        power_law_k=req.power_law_k,
+        power_law_n=req.power_law_n,
+        yield_stress_pa=req.yield_stress_pa,
+        solids_volume_fraction=req.solids_volume_fraction,
+        solids_particle_um=req.solids_particle_um,
+        description=req.description,
+    )
+    FLUID_DATABASE[req.id] = new_fluid
+    return {"status": "created", "fluid_id": req.id}
+
+
+@router.post("/simulations/pump/run", response_model=PumpSimulationResponse)
+def run_pump_simulation(req: PumpOperatingConditionsRequest):
+    """Executes a full physical and hydraulic simulation of the centrifugal pump."""
+    try:
+        cond = OperatingConditions(
+            pump_id=req.pump_id,
+            fluid_id=req.fluid_id,
+            fluid_temp_c=req.fluid_temp_c,
+            speed_rpm=req.speed_rpm,
+            flow_m3_h=req.flow_m3_h,
+            suction_static_head_m=req.suction_static_head_m,
+            discharge_static_head_m=req.discharge_static_head_m,
+            suction_pipe_dia_m=req.suction_pipe_dia_m,
+            suction_pipe_length_m=req.suction_pipe_length_m,
+            discharge_pipe_dia_m=req.discharge_pipe_dia_m,
+            discharge_pipe_length_m=req.discharge_pipe_length_m,
+            suction_valve_opening_pct=req.suction_valve_opening_pct,
+            discharge_valve_opening_pct=req.discharge_valve_opening_pct,
+            pipe_roughness_m=req.pipe_roughness_m,
+            impeller_diameter_m=req.impeller_diameter_m,
+            fault_cavitation_override=req.fault_cavitation_override,
+            fault_dry_run=req.fault_dry_run,
+            fault_suction_clog=req.fault_suction_clog,
+            fault_discharge_clog=req.fault_discharge_clog,
+            fault_impeller_wear=req.fault_impeller_wear,
+            fault_bearing_defect=req.fault_bearing_defect,
+            fault_seal_leakage=req.fault_seal_leakage,
+            fault_misalignment=req.fault_misalignment,
+            gas_entrainment_pct=req.gas_entrainment_pct,
+        )
+        res = simulate_centrifugal_pump(cond)
+        
+        return PumpSimulationResponse(
+            pump=res.pump.__dict__,
+            fluid=res.fluid.__dict__,
+            conditions=res.conditions.__dict__,
+            telemetry=PumpTelemetryResponse(**res.telemetry.__dict__),
+            characteristic_curve=[
+                PumpPerformancePointResponse(**pt.__dict__) for pt in res.characteristic_curve
+            ],
+        )
+    except Exception as e:
+        raise HTTPException(400, str(e))
+
 

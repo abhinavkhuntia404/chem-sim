@@ -7,6 +7,7 @@ import {
   Droplet,
   Beaker,
   Wind,
+  Activity,
 } from 'lucide-react';
 import { DistillationModule } from './DistillationModule';
 import { HeatExchangerModule } from './HeatExchangerModule';
@@ -14,10 +15,11 @@ import { ReactorModule } from './ReactorModule';
 import { ThermoModule } from './ThermoModule';
 import { OverviewModule } from './OverviewModule';
 import { FluidisationModule } from './FluidisationModule';
+import { CentrifugalPumpModule } from './CentrifugalPumpModule';
 import { fetchHealth } from './api';
 
 export function App() {
-  const [activeModule, setActiveModule] = useState<string>('fluidisation');
+  const [activeModule, setActiveModule] = useState<string>('centrifugal-pump');
   const [engineStatus, setEngineStatus] = useState<string>('Connecting...');
 
   useEffect(() => {
@@ -84,6 +86,16 @@ export function App() {
             <span>Thermodynamics</span>
           </div>
 
+          <div className="nav-section-title">Momentum Transfer</div>
+
+          <div
+            className={`nav-item ${activeModule === 'centrifugal-pump' ? 'active' : ''}`}
+            onClick={() => setActiveModule('centrifugal-pump')}
+          >
+            <Activity size={18} />
+            <span>Centrifugal Pump Digital Twin</span>
+          </div>
+
           <div className="nav-section-title">Mechanical Operations</div>
 
           <div
@@ -112,6 +124,7 @@ export function App() {
             {activeModule === 'heat-exchanger' && 'Heat Exchanger Rating & LMTD Design'}
             {activeModule === 'reactor' && 'Chemical Reaction Engineering & Kinetics'}
             {activeModule === 'thermo' && 'Thermodynamic Property Database & Phase Envelopes'}
+            {activeModule === 'centrifugal-pump' && 'Momentum Transfer: Centrifugal Pump Digital Twin & Virtual Laboratory'}
             {activeModule === 'fluidisation' && 'Mechanical Operations: Fluidisation & Packed Bed Dynamics'}
           </div>
 
@@ -125,6 +138,7 @@ export function App() {
 
         <main className="content-scroll">
           {activeModule === 'overview' && <OverviewModule onSelectModule={setActiveModule} />}
+          {activeModule === 'centrifugal-pump' && <CentrifugalPumpModule />}
           {activeModule === 'distillation' && <DistillationModule />}
           {activeModule === 'heat-exchanger' && <HeatExchangerModule />}
           {activeModule === 'reactor' && <ReactorModule />}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Layers, Flame, Atom, Droplet, ArrowRight, RefreshCw, CheckCircle2, Wind } from 'lucide-react';
+import { Layers, Flame, Atom, Droplet, ArrowRight, RefreshCw, CheckCircle2, Wind, Activity } from 'lucide-react';
 import { convertUnit } from './api';
 
 interface Props {
@@ -182,6 +182,31 @@ export const OverviewModule: React.FC<Props> = ({ onSelectModule }) => {
               </p>
               <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8rem', fontWeight: 600, color: '#0d9488' }}>
                 Open Thermo Database <ArrowRight size={14} />
+              </div>
+            </div>
+          </div>
+
+          {/* Centrifugal Pump Digital Twin Card */}
+          <div
+            className="eng-card"
+            style={{ cursor: 'pointer', transition: 'transform 0.15s ease', border: '1.5px solid #0284c7' }}
+            onClick={() => onSelectModule('centrifugal-pump')}
+          >
+            <div className="card-body">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                <div style={{ padding: 8, background: '#f0f9ff', borderRadius: 6, color: '#0284c7' }}>
+                  <Activity size={20} />
+                </div>
+                <div>
+                  <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0f172a' }}>Centrifugal Pump Digital Twin</h4>
+                  <span style={{ fontSize: '0.72rem', color: '#0284c7', fontWeight: 600 }}>MOMENTUM TRANSFER</span>
+                </div>
+              </div>
+              <p style={{ fontSize: '0.82rem', color: '#64748b', lineHeight: 1.5 }}>
+                Interactive 3D pump anatomy, Euler head, Darcy-Weisbach system curve, ANSI/HI 9.6.7 viscosity derating, cavitation diagnostics, and EXP-01..15 virtual experiments.
+              </p>
+              <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8rem', fontWeight: 600, color: '#0284c7' }}>
+                Launch Digital Twin <ArrowRight size={14} />
               </div>
             </div>
           </div>
