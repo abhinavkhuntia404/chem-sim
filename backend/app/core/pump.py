@@ -1071,3 +1071,4 @@ def simulate_centrifugal_pump(
         telemetry=telemetry,
         characteristic_curve=curves
     )
+

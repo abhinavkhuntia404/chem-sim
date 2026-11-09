@@ -202,3 +202,4 @@ Print-ready PDF / Printable Document complete with:
 - Backend unit test suite: `backend/tests/test_pump.py` (8 test classes covering water baseline, affinity scaling, ANSI/HI viscosity correction, pipe friction, cavitation detection, dry run fault, bearing defects, catalog completeness).
 - Frontend production build: verified via `tsc -b && vite build` (zero TypeScript errors, clean bundle).
 - Zero-latency client fallback engine guarantees 100% offline functionality.
+
