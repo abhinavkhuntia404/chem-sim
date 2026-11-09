@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import {
   Compass,
-  GraduationCap,
   Sliders,
   Activity,
   Wind,
@@ -9,29 +8,27 @@ import {
   Flame,
   Atom,
   Droplet,
-  Beaker,
-  Cpu,
-  TrendingUp,
-  Briefcase,
-  FolderGit2,
-  Presentation,
   FlaskConical,
   Menu,
   X,
+  ChevronDown,
+  ArrowRight,
 } from 'lucide-react';
+
+import { ChemSimLogo } from './components/ChemSimLogo';
 
 // Protected flagships (DO NOT MODIFY INTERNAL FILES)
 import { CentrifugalPumpModule } from './CentrifugalPumpModule';
 import { FluidisationModule } from './FluidisationModule';
 
-// Other simulations
+// Supplemental simulations
 import { DistillationModule } from './DistillationModule';
 import { HeatExchangerModule } from './HeatExchangerModule';
 import { ReactorModule } from './ReactorModule';
 import { ThermoModule } from './ThermoModule';
 import { OverviewModule } from './OverviewModule';
 
-// Workspaces (Revised Student & Teacher First Architecture)
+// Workspaces
 import { HomeWorkspace } from './workspaces/HomeWorkspace';
 import { AcademicWorkspace } from './workspaces/AcademicWorkspace';
 import { ToolboxWorkspace } from './workspaces/ToolboxWorkspace';
@@ -49,15 +46,16 @@ export function App() {
   const [userRole, setUserRole] = useState<'student' | 'teacher'>('student');
   const [activeModule, setActiveModule] = useState<string>('home');
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
+  const [simMenuOpen, setSimMenuOpen] = useState<boolean>(false);
   const [engineStatus, setEngineStatus] = useState<string>('Connecting...');
 
   useEffect(() => {
     fetchHealth()
       .then((h) => {
-        setEngineStatus(h.status === 'ok' ? 'FastAPI Backend Connected' : 'Client Engineering Engine Active');
+        setEngineStatus(h.status === 'ok' ? 'FastAPI Connected' : 'Engine Active');
       })
       .catch(() => {
-        setEngineStatus('Client Engineering Engine Active');
+        setEngineStatus('Engine Active');
       });
   }, []);
 
@@ -68,487 +66,476 @@ export function App() {
       setActiveModule(workspaceId);
     }
     setMobileMenuOpen(false);
+    setSimMenuOpen(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const isProtectedSimulation = activeModule === 'centrifugal-pump' || activeModule === 'fluidisation';
+  const isSimulationPage =
+    activeModule === 'centrifugal-pump' ||
+    activeModule === 'fluidisation' ||
+    activeModule === 'distillation' ||
+    activeModule === 'heat-exchanger' ||
+    activeModule === 'reactor' ||
+    activeModule === 'thermo' ||
+    activeModule === 'overview';
 
   return (
-    <div className="app-container">
-      {/* Mobile Sticky Top Header */}
-      <header className="mobile-top-bar">
-        <button
-          type="button"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          style={{ background: 'transparent', border: 'none', color: '#f8fafc', cursor: 'pointer', padding: 4 }}
-        >
-          {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
-        </button>
+    <div className="website-root" style={{ minHeight: '100vh', background: '#070b14', color: '#f8fafc', display: 'flex', flexDirection: 'column' }}>
+      {/* ================================================================= */}
+      {/* 1. CORPORATE HEADER NAVIGATION (STICKY TOP BAR)                   */}
+      {/* ================================================================= */}
+      <header
+        style={{
+          position: 'sticky',
+          top: 0,
+          zIndex: 100,
+          background: 'rgba(7, 11, 20, 0.92)',
+          backdropFilter: 'blur(12px)',
+          borderBottom: '1px solid #1e293b',
+          height: 64,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0 28px',
+        }}
+      >
+        {/* Left: Brand Logo */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 28 }}>
+          <div onClick={() => handleNavigate('home')} style={{ cursor: 'pointer' }}>
+            <ChemSimLogo size={32} showWordmark={true} />
+          </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 800, color: '#f8fafc', fontSize: '0.95rem' }}>
-          <Beaker size={18} color="#38bdf8" />
-          <span>CHEM-SIM</span>
+          {/* Desktop Top Nav Links */}
+          <nav className="desktop-nav" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <button
+              type="button"
+              className={`top-nav-link ${activeModule === 'home' ? 'active' : ''}`}
+              onClick={() => handleNavigate('home')}
+            >
+              Home
+            </button>
+
+            <button
+              type="button"
+              className={`top-nav-link ${activeModule === 'learn' ? 'active' : ''}`}
+              onClick={() => handleNavigate('learn')}
+            >
+              Learn
+            </button>
+
+            {/* Simulations Dropdown Link */}
+            <div style={{ position: 'relative' }}>
+              <button
+                type="button"
+                className={`top-nav-link ${isSimulationPage ? 'active' : ''}`}
+                onClick={() => setSimMenuOpen(!simMenuOpen)}
+                style={{ display: 'flex', alignItems: 'center', gap: 4 }}
+              >
+                Simulations <ChevronDown size={14} />
+              </button>
+
+              {simMenuOpen && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    marginTop: 8,
+                    width: 250,
+                    background: '#0f172a',
+                    border: '1px solid #1e3a8a',
+                    borderRadius: 8,
+                    padding: 8,
+                    boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 4,
+                    zIndex: 110,
+                  }}
+                >
+                  <div
+                    className="sim-dropdown-item"
+                    onClick={() => handleNavigate('centrifugal-pump')}
+                    style={{ padding: '8px 10px', borderRadius: 6, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.78rem', fontWeight: 700, color: '#38bdf8' }}
+                  >
+                    <Activity size={16} /> Centrifugal Pump 3D Twin
+                  </div>
+                  <div
+                    className="sim-dropdown-item"
+                    onClick={() => handleNavigate('fluidisation')}
+                    style={{ padding: '8px 10px', borderRadius: 6, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.78rem', fontWeight: 700, color: '#34d399' }}
+                  >
+                    <Wind size={16} /> Fluidisation Column
+                  </div>
+                  <div
+                    className="sim-dropdown-item"
+                    onClick={() => handleNavigate('distillation')}
+                    style={{ padding: '8px 10px', borderRadius: 6, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.78rem', color: '#cbd5e1' }}
+                  >
+                    <Layers size={16} /> Binary Distillation
+                  </div>
+                  <div
+                    className="sim-dropdown-item"
+                    onClick={() => handleNavigate('heat-exchanger')}
+                    style={{ padding: '8px 10px', borderRadius: 6, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.78rem', color: '#cbd5e1' }}
+                  >
+                    <Flame size={16} /> Heat Exchanger Rating
+                  </div>
+                  <div
+                    className="sim-dropdown-item"
+                    onClick={() => handleNavigate('reactor')}
+                    style={{ padding: '8px 10px', borderRadius: 6, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.78rem', color: '#cbd5e1' }}
+                  >
+                    <Atom size={16} /> Reaction Kinetics
+                  </div>
+                  <div
+                    className="sim-dropdown-item"
+                    onClick={() => handleNavigate('thermo')}
+                    style={{ padding: '8px 10px', borderRadius: 6, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.78rem', color: '#cbd5e1' }}
+                  >
+                    <Droplet size={16} /> Thermodynamics & VLE
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <button
+              type="button"
+              className={`top-nav-link ${activeModule === 'lab' ? 'active' : ''}`}
+              onClick={() => handleNavigate('lab')}
+            >
+              Virtual Labs
+            </button>
+
+            <button
+              type="button"
+              className={`top-nav-link ${activeModule === 'design' ? 'active' : ''}`}
+              onClick={() => handleNavigate('design')}
+            >
+              Process Design
+            </button>
+
+            <button
+              type="button"
+              className={`top-nav-link ${activeModule === 'industry' ? 'active' : ''}`}
+              onClick={() => handleNavigate('industry')}
+            >
+              Digital Twins
+            </button>
+
+            <button
+              type="button"
+              className={`top-nav-link ${activeModule === 'toolbox' ? 'active' : ''}`}
+              onClick={() => handleNavigate('toolbox')}
+            >
+              Tools
+            </button>
+
+            <button
+              type="button"
+              className={`top-nav-link ${activeModule === 'career' ? 'active' : ''}`}
+              onClick={() => handleNavigate('career')}
+            >
+              Career
+            </button>
+          </nav>
         </div>
 
-        {/* Role Toggle on Mobile */}
-        <div className="role-badge-toggle">
+        {/* Right: Role Switcher & Action CTA */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          {/* Segmented Student / Faculty Toggle */}
+          <div className="role-badge-toggle" style={{ display: 'inline-flex', background: '#0f172a', padding: 2, borderRadius: 6, border: '1px solid #1e293b' }}>
+            <button
+              type="button"
+              className={`role-btn ${userRole === 'student' ? 'active' : ''}`}
+              onClick={() => {
+                setUserRole('student');
+                if (activeModule === 'teacher-home') setActiveModule('home');
+              }}
+              style={{ padding: '4px 10px', fontSize: '0.74rem', fontWeight: 700, borderRadius: 4, border: 'none', cursor: 'pointer', background: userRole === 'student' ? '#0284c7' : 'transparent', color: userRole === 'student' ? '#ffffff' : '#94a3b8' }}
+            >
+              Student
+            </button>
+            <button
+              type="button"
+              className={`role-btn ${userRole === 'teacher' ? 'active' : ''}`}
+              onClick={() => {
+                setUserRole('teacher');
+                setActiveModule('teacher-home');
+              }}
+              style={{ padding: '4px 10px', fontSize: '0.74rem', fontWeight: 700, borderRadius: 4, border: 'none', cursor: 'pointer', background: userRole === 'teacher' ? '#0284c7' : 'transparent', color: userRole === 'teacher' ? '#ffffff' : '#94a3b8' }}
+            >
+              Faculty
+            </button>
+          </div>
+
+          {/* Engine Status Dot */}
+          <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#10b981' }} />
+            <span className="desktop-only-text">{engineStatus}</span>
+          </span>
+
+          {/* Primary Action Button */}
           <button
             type="button"
-            className={`role-btn ${userRole === 'student' ? 'active' : ''}`}
-            onClick={() => {
-              setUserRole('student');
-              setActiveModule('home');
+            onClick={() => handleNavigate('centrifugal-pump')}
+            style={{
+              background: '#0284c7',
+              color: '#ffffff',
+              border: 'none',
+              padding: '8px 16px',
+              borderRadius: 6,
+              fontSize: '0.78rem',
+              fontWeight: 800,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              boxShadow: '0 2px 10px rgba(2, 132, 199, 0.3)',
             }}
           >
-            Student
+            Launch Twin <ArrowRight size={14} />
           </button>
+
+          {/* Mobile Hamburger Toggle Button */}
           <button
             type="button"
-            className={`role-btn ${userRole === 'teacher' ? 'active' : ''}`}
-            onClick={() => {
-              setUserRole('teacher');
-              setActiveModule('teacher-home');
-            }}
+            className="mobile-hamburger-btn"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            style={{ background: 'transparent', border: 'none', color: '#f8fafc', cursor: 'pointer', padding: 4 }}
           >
-            Teacher
+            {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
         </div>
       </header>
 
-      {/* Sidebar Navigation (Desktop Fixed, Mobile Drawer) */}
-      <aside className={`sidebar ${mobileMenuOpen ? 'open' : ''}`}>
-        <div className="sidebar-header">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div className="brand-badge">
-              <Beaker size={22} color="#38bdf8" />
-              <span>CHEM-SIM</span>
-              <span className="brand-tag">v2.0</span>
-            </div>
-            {mobileMenuOpen && (
-              <button
-                type="button"
-                onClick={() => setMobileMenuOpen(false)}
-                style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
-              >
-                <X size={18} />
-              </button>
-            )}
-          </div>
-
-          <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: 4 }}>
-            Visual Chemical Engineering Suite
-          </div>
-
-          {/* Desktop Role Switcher Segmented Control */}
-          <div style={{ marginTop: 12 }}>
-            <div className="role-badge-toggle" style={{ width: '100%', display: 'flex' }}>
-              <button
-                type="button"
-                className={`role-btn ${userRole === 'student' ? 'active' : ''}`}
-                style={{ flex: 1, textAlign: 'center' }}
-                onClick={() => {
-                  setUserRole('student');
-                  setActiveModule('home');
-                }}
-              >
-                🎓 Student
-              </button>
-              <button
-                type="button"
-                className={`role-btn ${userRole === 'teacher' ? 'active' : ''}`}
-                style={{ flex: 1, textAlign: 'center' }}
-                onClick={() => {
-                  setUserRole('teacher');
-                  setActiveModule('teacher-home');
-                }}
-              >
-                👨‍🏫 Teacher
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <nav className="sidebar-nav">
-          {/* ========================================================= */}
-          {/* STUDENT ROLE NAVIGATION                                   */}
-          {/* ========================================================= */}
-          {userRole === 'student' && (
-            <>
-              <div className="nav-section-title">My Learning</div>
-
-              <div
-                className={`nav-item ${activeModule === 'home' ? 'active' : ''}`}
-                onClick={() => handleNavigate('home')}
-              >
-                <Compass size={17} />
-                <span>Home & My Learning</span>
-              </div>
-
-              <div
-                className={`nav-item ${activeModule === 'learn' ? 'active' : ''}`}
-                onClick={() => handleNavigate('learn')}
-              >
-                <Activity size={17} color="#38bdf8" />
-                <span>Visual Concept Studio</span>
-              </div>
-
-              <div
-                className={`nav-item ${activeModule === 'lab' ? 'active' : ''}`}
-                onClick={() => handleNavigate('lab')}
-              >
-                <FlaskConical size={17} color="#34d399" />
-                <span>Virtual Experiments</span>
-              </div>
-
-              <div
-                className={`nav-item ${activeModule === 'academic' ? 'active' : ''}`}
-                onClick={() => handleNavigate('academic')}
-              >
-                <GraduationCap size={17} />
-                <span>Curriculum & Topics</span>
-              </div>
-
-              <div
-                className={`nav-item ${activeModule === 'toolbox' ? 'active' : ''}`}
-                onClick={() => handleNavigate('toolbox')}
-              >
-                <Sliders size={17} />
-                <span>Engineering Calculators</span>
-              </div>
-
-              <div className="nav-section-title">Flagship Simulations</div>
-
-              <div
-                className={`nav-item ${activeModule === 'centrifugal-pump' ? 'active' : ''}`}
-                onClick={() => handleNavigate('centrifugal-pump')}
-                style={{
-                  background: activeModule === 'centrifugal-pump' ? 'rgba(56, 189, 248, 0.15)' : undefined,
-                  borderColor: activeModule === 'centrifugal-pump' ? '#38bdf8' : undefined,
-                }}
-              >
-                <Activity size={17} color="#38bdf8" />
-                <span style={{ fontWeight: 600, color: activeModule === 'centrifugal-pump' ? '#38bdf8' : '#e0f2fe' }}>
-                  Centrifugal Pump Twin
-                </span>
-              </div>
-
-              <div
-                className={`nav-item ${activeModule === 'fluidisation' ? 'active' : ''}`}
-                onClick={() => handleNavigate('fluidisation')}
-                style={{
-                  background: activeModule === 'fluidisation' ? 'rgba(52, 211, 153, 0.15)' : undefined,
-                  borderColor: activeModule === 'fluidisation' ? '#34d399' : undefined,
-                }}
-              >
-                <Wind size={17} color="#34d399" />
-                <span style={{ fontWeight: 600, color: activeModule === 'fluidisation' ? '#34d399' : '#e0f2fe' }}>
-                  Fluidisation Unit
-                </span>
-              </div>
-
-              <div
-                className={`nav-item ${activeModule === 'distillation' ? 'active' : ''}`}
-                onClick={() => handleNavigate('distillation')}
-              >
-                <Layers size={17} />
-                <span>Binary Distillation</span>
-              </div>
-
-              <div
-                className={`nav-item ${activeModule === 'heat-exchanger' ? 'active' : ''}`}
-                onClick={() => handleNavigate('heat-exchanger')}
-              >
-                <Flame size={17} />
-                <span>Heat Exchangers</span>
-              </div>
-
-              <div
-                className={`nav-item ${activeModule === 'reactor' ? 'active' : ''}`}
-                onClick={() => handleNavigate('reactor')}
-              >
-                <Atom size={17} />
-                <span>Reaction Kinetics</span>
-              </div>
-
-              <div
-                className={`nav-item ${activeModule === 'thermo' ? 'active' : ''}`}
-                onClick={() => handleNavigate('thermo')}
-              >
-                <Droplet size={17} />
-                <span>Thermodynamics</span>
-              </div>
-
-              <div className="nav-section-title">Design, Plant & Career</div>
-
-              <div
-                className={`nav-item ${activeModule === 'design' ? 'active' : ''}`}
-                onClick={() => handleNavigate('design')}
-              >
-                <Cpu size={17} />
-                <span>Process Design Studio</span>
-              </div>
-
-              <div
-                className={`nav-item ${activeModule === 'industry' ? 'active' : ''}`}
-                onClick={() => handleNavigate('industry')}
-              >
-                <TrendingUp size={17} />
-                <span>Digital Twin Centre</span>
-              </div>
-
-              <div
-                className={`nav-item ${activeModule === 'career' ? 'active' : ''}`}
-                onClick={() => handleNavigate('career')}
-              >
-                <Briefcase size={17} />
-                <span>Career Preparation</span>
-              </div>
-
-              <div
-                className={`nav-item ${activeModule === 'portfolio' ? 'active' : ''}`}
-                onClick={() => handleNavigate('portfolio')}
-              >
-                <FolderGit2 size={17} />
-                <span>Engineering Portfolio</span>
-              </div>
-            </>
-          )}
-
-          {/* ========================================================= */}
-          {/* TEACHER ROLE NAVIGATION                                   */}
-          {/* ========================================================= */}
-          {userRole === 'teacher' && (
-            <>
-              <div className="nav-section-title">Teaching Workspace</div>
-
-              <div
-                className={`nav-item ${activeModule === 'teacher-home' ? 'active' : ''}`}
-                onClick={() => handleNavigate('teacher-home')}
-              >
-                <Presentation size={17} color="#38bdf8" />
-                <span>Classroom Presentation</span>
-              </div>
-
-              <div
-                className={`nav-item ${activeModule === 'academic' ? 'active' : ''}`}
-                onClick={() => handleNavigate('academic')}
-              >
-                <GraduationCap size={17} />
-                <span>Courses & Syllabus</span>
-              </div>
-
-              <div
-                className={`nav-item ${activeModule === 'learn' ? 'active' : ''}`}
-                onClick={() => handleNavigate('learn')}
-              >
-                <Activity size={17} />
-                <span>Interactive Concept Chalkboard</span>
-              </div>
-
-              <div
-                className={`nav-item ${activeModule === 'lab' ? 'active' : ''}`}
-                onClick={() => handleNavigate('lab')}
-              >
-                <FlaskConical size={17} color="#34d399" />
-                <span>Virtual Experiments</span>
-              </div>
-
-              <div className="nav-section-title">Class Demonstration Twins</div>
-
-              <div
-                className={`nav-item ${activeModule === 'centrifugal-pump' ? 'active' : ''}`}
-                onClick={() => handleNavigate('centrifugal-pump')}
-              >
-                <Activity size={17} color="#38bdf8" />
-                <span>Pump 3D Anatomy Lab</span>
-              </div>
-
-              <div
-                className={`nav-item ${activeModule === 'fluidisation' ? 'active' : ''}`}
-                onClick={() => handleNavigate('fluidisation')}
-              >
-                <Wind size={17} color="#34d399" />
-                <span>Fluidised Bed Column</span>
-              </div>
-
-              <div
-                className={`nav-item ${activeModule === 'heat-exchanger' ? 'active' : ''}`}
-                onClick={() => handleNavigate('heat-exchanger')}
-              >
-                <Flame size={17} />
-                <span>Exchanger LMTD Rating</span>
-              </div>
-
-              <div
-                className={`nav-item ${activeModule === 'reactor' ? 'active' : ''}`}
-                onClick={() => handleNavigate('reactor')}
-              >
-                <Atom size={17} />
-                <span>CSTR / PFR Kinetics</span>
-              </div>
-
-              <div className="nav-section-title">Collaboration & Review</div>
-
-              <div
-                className={`nav-item ${activeModule === 'industry' ? 'active' : ''}`}
-                onClick={() => handleNavigate('industry')}
-              >
-                <TrendingUp size={17} />
-                <span>SCADA & PID Demonstration</span>
-              </div>
-
-              <div
-                className={`nav-item ${activeModule === 'design' ? 'active' : ''}`}
-                onClick={() => handleNavigate('design')}
-              >
-                <Cpu size={17} />
-                <span>P&ID Flowsheet Demonstrator</span>
-              </div>
-            </>
-          )}
-        </nav>
-
-        <div className="sidebar-footer">
-          <div>
-            <div style={{ color: '#94a3b8', fontWeight: 600 }}>CHEM-SIM Suite</div>
-            <div style={{ fontSize: '0.68rem' }}>{userRole === 'student' ? 'Student Workspace' : 'Teacher Workspace'}</div>
-          </div>
-        </div>
-      </aside>
-
-      {/* Main Content Area */}
-      <div className="main-content">
-        {/* Desktop Top Bar */}
-        <header className="top-bar">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            {isProtectedSimulation && (
-              <button
-                type="button"
-                onClick={() => setActiveModule(userRole === 'student' ? 'home' : 'teacher-home')}
-                style={{
-                  background: '#1e293b',
-                  color: '#38bdf8',
-                  border: '1px solid #334155',
-                  padding: '4px 10px',
-                  borderRadius: 4,
-                  fontSize: '0.74rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 4,
-                }}
-              >
-                ← Back to Workspace
-              </button>
-            )}
-
-            <div className="page-title" style={{ fontSize: '0.92rem', fontWeight: 800 }}>
-              {activeModule === 'home' && 'Student Home — Visual Engineering Learning & Problem Solving'}
-              {activeModule === 'teacher-home' && 'Faculty Classroom Presentation & Student Submission Review'}
-              {activeModule === 'learn' && 'Visual Concept Studio — Animated Engineering Physics & Profiles'}
-              {activeModule === 'lab' && 'Virtual Experiment Mode — Guided Laboratory Workflows & Reports'}
-              {activeModule === 'academic' && 'Academic Curriculum Engine (VTU & Autonomous 2026–27 Scheme)'}
-              {activeModule === 'toolbox' && 'Curriculum-Independent Engineering Calculators (30+ Solvers)'}
-              {activeModule === 'centrifugal-pump' && 'Centrifugal Pump Digital Twin & Virtual Laboratory'}
-              {activeModule === 'fluidisation' && 'Fluidisation & Packed Bed Dynamics Simulator'}
-              {activeModule === 'distillation' && 'Binary Distillation Simulation (McCabe–Thiele Stage Stepping)'}
-              {activeModule === 'heat-exchanger' && 'Heat Exchanger Rating & LMTD Counter-Current Design'}
-              {activeModule === 'reactor' && 'Chemical Reaction Kinetics (CSTR vs PFR Performance)'}
-              {activeModule === 'thermo' && 'Thermodynamic Property Database & Phase Envelopes'}
-              {activeModule === 'overview' && 'Simulation Overview & Sci-Eng Bench'}
-              {activeModule === 'design' && 'Process Design Studio (PFD / P&ID Flowsheets & Equipment Datasheets)'}
-              {activeModule === 'industry' && 'Industrial Digital Twin Centre (SCADA Trends, PID Tuning, HAZOP)'}
-              {activeModule === 'career' && 'Career & Placement Readiness (8 Pathways, 100+ Q&As, Plant Incidents)'}
-              {activeModule === 'portfolio' && 'Engineering Project Portfolio & Verified Capstone Studio'}
-            </div>
-          </div>
-
-          <div className="top-actions" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span className="status-indicator status-online">
-              <span className="status-dot" />
-              {engineStatus}
+      {/* ================================================================= */}
+      {/* 2. SUB-SIMULATION BREADCRUMB / SWITCHER BAR (WHEN IN SIMULATION) */}
+      {/* ================================================================= */}
+      {isSimulationPage && (
+        <div
+          style={{
+            background: '#0b1329',
+            borderBottom: '1px solid #1e293b',
+            padding: '8px 28px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: 10,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.76rem' }}>
+            <button
+              type="button"
+              onClick={() => handleNavigate('home')}
+              style={{ background: 'transparent', border: 'none', color: '#38bdf8', fontWeight: 700, cursor: 'pointer', padding: 0 }}
+            >
+              ← Back to Overview
+            </button>
+            <span style={{ color: '#475569' }}>/</span>
+            <span style={{ color: '#94a3b8' }}>Simulation Laboratory</span>
+            <span style={{ color: '#475569' }}>/</span>
+            <span style={{ color: '#f8fafc', fontWeight: 800 }}>
+              {activeModule === 'centrifugal-pump' && 'Centrifugal Pump Digital Twin (API 610)'}
+              {activeModule === 'fluidisation' && 'Fluidisation & Packed Bed Dynamics'}
+              {activeModule === 'distillation' && 'Binary Distillation (McCabe-Thiele)'}
+              {activeModule === 'heat-exchanger' && 'Shell & Tube Exchanger Rating'}
+              {activeModule === 'reactor' && 'CSTR vs PFR Reaction Kinetics'}
+              {activeModule === 'thermo' && 'VLE Phase Envelopes & Antoine'}
             </span>
           </div>
-        </header>
 
-        {/* Scrollable Viewport */}
-        <main className="content-scroll" style={{ padding: '24px', flex: 1, overflowY: 'auto' }}>
-          {/* Student Specific Views */}
-          {activeModule === 'home' && <HomeWorkspace onNavigate={handleNavigate} />}
-          {activeModule === 'learn' && <VisualConceptExplorer onLaunchSimulation={setActiveModule} />}
-          {activeModule === 'lab' && <ExperimentWorkspace onLaunchSimulation={setActiveModule} />}
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {[
+              { id: 'centrifugal-pump', label: 'Pump 3D Twin' },
+              { id: 'fluidisation', label: 'Fluidisation' },
+              { id: 'distillation', label: 'Distillation' },
+              { id: 'heat-exchanger', label: 'Exchanger' },
+              { id: 'reactor', label: 'Reactors' },
+              { id: 'thermo', label: 'Thermo' },
+            ].map((sim) => (
+              <button
+                key={sim.id}
+                type="button"
+                onClick={() => handleNavigate(sim.id)}
+                style={{
+                  background: activeModule === sim.id ? '#0284c7' : '#1e293b',
+                  color: activeModule === sim.id ? '#ffffff' : '#94a3b8',
+                  border: '1px solid #334155',
+                  padding: '3px 8px',
+                  borderRadius: 4,
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                {sim.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
-          {/* Teacher Specific Views */}
-          {activeModule === 'teacher-home' && <TeacherWorkspace onLaunchSimulation={setActiveModule} />}
+      {/* ================================================================= */}
+      {/* 3. MOBILE OFFCANVAS DRAWER                                       */}
+      {/* ================================================================= */}
+      {mobileMenuOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 90,
+            background: 'rgba(4, 7, 17, 0.95)',
+            display: 'flex',
+            flexDirection: 'column',
+            padding: '80px 24px 24px',
+            gap: 16,
+          }}
+        >
+          <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>
+            Navigation Menu
+          </div>
 
-          {/* Shared Workspaces */}
-          {activeModule === 'academic' && <AcademicWorkspace onLaunchSimulation={setActiveModule} />}
-          {activeModule === 'toolbox' && <ToolboxWorkspace />}
-          {activeModule === 'design' && <DesignWorkspace onLaunchSimulation={setActiveModule} />}
-          {activeModule === 'industry' && <DigitalTwinWorkspace onLaunchSimulation={setActiveModule} />}
-          {activeModule === 'career' && <CareerWorkspace onLaunchSimulation={setActiveModule} />}
-          {activeModule === 'portfolio' && <PortfolioWorkspace onLaunchSimulation={setActiveModule} />}
+          {[
+            { id: 'home', label: 'Home Landing Page' },
+            { id: 'learn', label: 'Visual Concept Studio' },
+            { id: 'centrifugal-pump', label: 'Centrifugal Pump Digital Twin' },
+            { id: 'fluidisation', label: 'Fluidisation Unit' },
+            { id: 'lab', label: 'Virtual Experiments' },
+            { id: 'design', label: 'Process Design Studio' },
+            { id: 'industry', label: 'Digital Twin Centre' },
+            { id: 'toolbox', label: 'Engineering Calculators' },
+            { id: 'career', label: 'Career Preparation' },
+            { id: 'portfolio', label: 'Engineering Portfolio' },
+          ].map((item) => (
+            <div
+              key={item.id}
+              onClick={() => handleNavigate(item.id)}
+              style={{
+                padding: '12px 14px',
+                background: activeModule === item.id ? '#1e3a8a' : '#0f172a',
+                borderRadius: 8,
+                fontSize: '0.9rem',
+                fontWeight: 700,
+                color: activeModule === item.id ? '#38bdf8' : '#f8fafc',
+                cursor: 'pointer',
+              }}
+            >
+              {item.label}
+            </div>
+          ))}
 
-          {/* Protected Digital Twin Flagships */}
-          {activeModule === 'centrifugal-pump' && <CentrifugalPumpModule />}
-          {activeModule === 'fluidisation' && <FluidisationModule />}
-
-          {/* Supplemental Simulations */}
-          {activeModule === 'overview' && <OverviewModule onSelectModule={setActiveModule} />}
-          {activeModule === 'distillation' && <DistillationModule />}
-          {activeModule === 'heat-exchanger' && <HeatExchangerModule />}
-          {activeModule === 'reactor' && <ReactorModule />}
-          {activeModule === 'thermo' && <ThermoModule />}
-        </main>
-
-        {/* Mobile Bottom Navigation Bar (< 900px screens) */}
-        <nav className="mobile-bottom-nav">
           <button
             type="button"
-            className={`mobile-nav-item ${activeModule === (userRole === 'student' ? 'home' : 'teacher-home') ? 'active' : ''}`}
-            onClick={() => setActiveModule(userRole === 'student' ? 'home' : 'teacher-home')}
+            onClick={() => setMobileMenuOpen(false)}
+            style={{ marginTop: 'auto', background: '#1e293b', color: '#94a3b8', border: '1px solid #334155', padding: 12, borderRadius: 8, fontSize: '0.84rem', cursor: 'pointer' }}
           >
-            {userRole === 'student' ? <Compass size={18} /> : <Presentation size={18} />}
-            <span>Home</span>
+            Close Menu
           </button>
+        </div>
+      )}
 
-          <button
-            type="button"
-            className={`mobile-nav-item ${activeModule === 'learn' ? 'active' : ''}`}
-            onClick={() => setActiveModule('learn')}
-          >
-            <Activity size={18} />
-            <span>Learn</span>
-          </button>
+      {/* ================================================================= */}
+      {/* 4. MAIN CONTENT VIEWPORT                                         */}
+      {/* ================================================================= */}
+      <main
+        style={{
+          flex: 1,
+          width: '100%',
+          maxWidth: 1360,
+          margin: '0 auto',
+          padding: activeModule === 'home' ? '28px 24px 60px' : '24px 24px 60px',
+        }}
+      >
+        {activeModule === 'home' && <HomeWorkspace onNavigate={handleNavigate} />}
+        {activeModule === 'learn' && <VisualConceptExplorer onLaunchSimulation={setActiveModule} />}
+        {activeModule === 'lab' && <ExperimentWorkspace onLaunchSimulation={setActiveModule} />}
+        {activeModule === 'teacher-home' && <TeacherWorkspace onLaunchSimulation={setActiveModule} />}
+        {activeModule === 'academic' && <AcademicWorkspace onLaunchSimulation={setActiveModule} />}
+        {activeModule === 'toolbox' && <ToolboxWorkspace />}
+        {activeModule === 'design' && <DesignWorkspace onLaunchSimulation={setActiveModule} />}
+        {activeModule === 'industry' && <DigitalTwinWorkspace onLaunchSimulation={setActiveModule} />}
+        {activeModule === 'career' && <CareerWorkspace onLaunchSimulation={setActiveModule} />}
+        {activeModule === 'portfolio' && <PortfolioWorkspace onLaunchSimulation={setActiveModule} />}
 
-          <button
-            type="button"
-            className={`mobile-nav-item ${activeModule === 'lab' ? 'active' : ''}`}
-            onClick={() => setActiveModule('lab')}
-          >
-            <FlaskConical size={18} />
-            <span>Lab</span>
-          </button>
+        {/* Protected Flagships (IMMUTABLE) */}
+        {activeModule === 'centrifugal-pump' && <CentrifugalPumpModule />}
+        {activeModule === 'fluidisation' && <FluidisationModule />}
 
-          <button
-            type="button"
-            className={`mobile-nav-item ${activeModule === 'centrifugal-pump' ? 'active' : ''}`}
-            onClick={() => setActiveModule('centrifugal-pump')}
-          >
-            <Wind size={18} />
-            <span>Pump Twin</span>
-          </button>
+        {/* Supplemental Simulations */}
+        {activeModule === 'distillation' && <DistillationModule />}
+        {activeModule === 'heat-exchanger' && <HeatExchangerModule />}
+        {activeModule === 'reactor' && <ReactorModule />}
+        {activeModule === 'thermo' && <ThermoModule />}
+        {activeModule === 'overview' && <OverviewModule onSelectModule={setActiveModule} />}
+      </main>
 
-          <button
-            type="button"
-            className={`mobile-nav-item ${activeModule === 'toolbox' ? 'active' : ''}`}
-            onClick={() => setActiveModule('toolbox')}
-          >
-            <Sliders size={18} />
-            <span>Tools</span>
-          </button>
-        </nav>
-      </div>
+      {/* ================================================================= */}
+      {/* 5. MOBILE BOTTOM NAVIGATION (TOUCH-FRIENDLY QUICK SHORTCUTS)      */}
+      {/* ================================================================= */}
+      <nav
+        className="mobile-bottom-nav"
+        style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: 56,
+          background: '#090d16',
+          borderTop: '1px solid #1e293b',
+          zIndex: 80,
+          display: 'none',
+          alignItems: 'center',
+          justifyContent: 'space-around',
+          padding: '0 4px',
+        }}
+      >
+        <button
+          type="button"
+          onClick={() => handleNavigate('home')}
+          style={{ background: 'transparent', border: 'none', color: activeModule === 'home' ? '#38bdf8' : '#94a3b8', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, fontSize: '0.64rem', fontWeight: 700, cursor: 'pointer' }}
+        >
+          <Compass size={18} />
+          <span>Home</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => handleNavigate('learn')}
+          style={{ background: 'transparent', border: 'none', color: activeModule === 'learn' ? '#38bdf8' : '#94a3b8', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, fontSize: '0.64rem', fontWeight: 700, cursor: 'pointer' }}
+        >
+          <Activity size={18} />
+          <span>Learn</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => handleNavigate('centrifugal-pump')}
+          style={{ background: 'transparent', border: 'none', color: activeModule === 'centrifugal-pump' ? '#38bdf8' : '#94a3b8', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, fontSize: '0.64rem', fontWeight: 700, cursor: 'pointer' }}
+        >
+          <Wind size={18} />
+          <span>Pump Twin</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => handleNavigate('lab')}
+          style={{ background: 'transparent', border: 'none', color: activeModule === 'lab' ? '#38bdf8' : '#94a3b8', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, fontSize: '0.64rem', fontWeight: 700, cursor: 'pointer' }}
+        >
+          <FlaskConical size={18} />
+          <span>Lab SOPs</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => handleNavigate('toolbox')}
+          style={{ background: 'transparent', border: 'none', color: activeModule === 'toolbox' ? '#38bdf8' : '#94a3b8', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, fontSize: '0.64rem', fontWeight: 700, cursor: 'pointer' }}
+        >
+          <Sliders size={18} />
+          <span>Tools</span>
+        </button>
+      </nav>
     </div>
   );
 }

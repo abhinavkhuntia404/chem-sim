@@ -10,23 +10,40 @@ Designed following MANAS scientific engineering design principles: transparent a
 
 CHEM-SIM is structured into **9 integrated, curriculum-independent workspaces** connecting university education, practical engineering, industrial workflows, and career readiness:
 
-### 1. Platform Home & Mission Control (`HomeWorkspace.tsx`)
-- Immediate orientation addressing the 5 fundamental questions of every chemical engineering student:
-  - *What does a Chemical Engineer actually do?*
-  - *How do physical sciences translate into process plant operations?*
-  - *Where do the university syllabus equations apply in modern industry?*
-  - *How do digital twins and simulation models optimize production and safety?*
-  - *What engineering career pathways exist and what technical skills are required?*
-- Executive dashboard with direct access to digital twins, design studios, career pathways, and curriculum engines.
+### 1. Product Landing Page & Process Visualizer (`HomeWorkspace.tsx`)
+- Headline: *"Understand Engineering. Simulate Reality."*
+- Interactive live chemical process simulation loop connecting a Surge Tank $\to$ Centrifugal Pump (API 610) $\to$ Shell & Tube Preheater $\to$ CSTR Reactor $\to$ Distillation Column with dynamic speed, flow, temperature, and conversion controls.
+- 6 Engineering Discipline Exploration Cards (Fluid Mechanics, Mechanical Operations, Heat Transfer, Mass Transfer, Chemical Reaction Engineering, Thermodynamics).
+- Real previews of flagship digital twins and supplemental simulations.
+- Visual Concept learning showcase, industrial digital twin three-tier roadmap, Student & Faculty workspace overviews, engineering toolbox highlights, and corporate footer.
 
-### 2. Academic Curriculum Engine (`AcademicWorkspace.tsx`)
-- Pre-configured for the **VTU / Autonomous University 2026–27 Scheme** across Semesters III through VIII.
-- Detailed Course Outcomes (CO1 to CO5) with Bloom's Taxonomy tagging and Program Outcome (PO) mapping.
-- Syllabus unit breakdowns, lecture hour allocations, and textbook citations (McCabe-Smith-Harriott, Coulson & Richardson, Levenspiel, Smith-Van Ness-Abbott).
-- 5 fully worked, step-by-step engineering problems with analytical derivations.
-- University laboratory catalog for Technical Chemistry, Mechanical Operations, Momentum Transfer, and Pollution Control with viva question banks.
+### 2. Visual Concept Studio (`VisualConceptExplorer.tsx`)
+- Interactive 2D physics diagrams & derivations:
+  - **Fluid Mechanics**: Laminar parabolic velocity profile vs. turbulent 1/7th power-law profile with dynamic Reynolds slider ($Re = 500 \to 10,000$).
+  - **Heat Transfer**: Co-current vs. counter-current temperature gradients ($T(x)$) and LMTD calculation.
+  - **Reaction Engineering**: CSTR well-mixed exit concentration vs. PFR spatial exponential decay with Damköhler scaling.
+  - **Mass Transfer**: Binary VLE equilibrium curve $y(x)$ with dynamic relative volatility ($\alpha$), reflux ratio ($R$), and McCabe-Thiele stage stepping.
+  - **Thermodynamics**: Binary $T-x-y$ phase envelope with bubble/dew point curves and tie-line lever arm rule.
 
-### 3. Curriculum-Independent Engineering Toolbox (`ToolboxWorkspace.tsx`)
+### 3. Student Virtual Laboratory Experiment Mode (`ExperimentWorkspace.tsx`)
+- Guided 7-stage university laboratory workflow:
+  1. Experiment Objective & Scope
+  2. Governing Principles & Analytical Formulas
+  3. Interactive Virtual Apparatus Controls
+  4. Live Observation Table with one-click "Record Data Point" and CSV export
+  5. Real-time Characteristic Performance Curves ($H-Q$, $\eta-Q$, $P-Q$)
+  6. Oral Viva Voce Quiz Bank with hints & model answers
+  7. Formal Printable Laboratory Report Generator with automated verification seal
+
+### 4. Teacher & Faculty Presentation Workspace (`TeacherWorkspace.tsx`)
+- Designed specifically for university faculty and classroom demonstration:
+  - **Clean Classroom Presentation Stage**: Fullscreen mode, laser pointer component highlighter (impeller, volute casing, mechanical seal, bearing housing).
+  - **Side-by-Side Scenario Comparison**: Real-time dual simulation (Scenario A: Baseline 2950 RPM vs. Scenario B: Speed Throttling 2400 RPM).
+  - **Step-by-Step Mathematical Derivations**: Transparent Euler turbomachinery equation chalkboard derivations.
+  - **Broadcast Classroom Activity**: Share live operating conditions with students.
+  - **Assignment & Submission Grading**: Review student virtual lab reports and award marks with rubrics.
+
+### 5. Curriculum-Independent Engineering Toolbox (`ToolboxWorkspace.tsx`)
 - **30+ interactive engineering calculation engines** with transparent mathematical formulas and SI unit enforcement:
   - **Fluid Mechanics**: Reynolds number, Darcy-Weisbach friction factor (Colebrook-White equation), pipe pressure drop, equivalent lengths.
   - **Heat Transfer**: Log Mean Temperature Difference (LMTD), heat exchanger thermal duty, overall heat transfer coefficient ($U$), required surface area.
@@ -35,7 +52,7 @@ CHEM-SIM is structured into **9 integrated, curriculum-independent workspaces** 
   - **Mass Transfer**: Fuller-Schettler-Giddings binary gas diffusivity ($D_{AB}$), Schmidt number.
   - **Engineering Economics**: Net Present Value (NPV), discounted cash flow, simple and discounted payback periods.
 
-### 4. Flagship Digital Twins & Virtual Laboratories
+### 6. Flagship Digital Twins & Virtual Laboratories
 - **Flagship 1: Centrifugal Pump Digital Twin** (`CentrifugalPumpModule.tsx` — PROTECTED):
   - Interactive 3D pump anatomical inspection (impeller, volute casing, wear rings, shaft, mechanical seal, bearing housing).
   - Euler turbomachinery equation: developed head ($H$), hydraulic power ($P_{hyd}$), brake power ($P_{brake}$), and affinity laws.
@@ -53,34 +70,23 @@ CHEM-SIM is structured into **9 integrated, curriculum-independent workspaces** 
 - **Chemical Reactor Kinetics** (`ReactorModule.tsx`): CSTR and PFR comparative conversions with Arrhenius temperature dependence.
 - **Thermodynamic Property Database** (`ThermoModule.tsx`): NIST component library, Antoine vapor pressure, binary VLE bubble/dew point phase envelopes.
 
-### 5. Process Design Studio (`DesignWorkspace.tsx`)
+### 7. Process Design Studio (`DesignWorkspace.tsx`)
 - Dual-mode flowsheet canvas:
   - **PFD Mode** (Process Flow Diagram): Equipment tags (P-101, E-101, R-101, V-101), mass/energy stream flows, temperatures, pressures.
   - **P&ID Mode** (Piping & Instrumentation Diagram): ANSI/ISA-5.1-2009 standard instrumentation loops (FT, FIC, PT, PIC, TT, TIC, LT, LIC), safety relief valves (PSV), and fail-safe actuators.
 - Dynamic Heat & Material Balance (H&MB) stream table updated via first-principles equations.
 - Procurement-ready Engineering Equipment Datasheet Generator (API 610 12th Ed for centrifugal pumps, TEMA Class R for shell-and-tube heat exchangers, ASME Section VIII for pressure vessels).
 
-### 6. Industrial Digital Twin Centre & Plant Automation (`DigitalTwinWorkspace.tsx`)
-- **SCADA Historian Trends Monitor**: Real-time multi-pen trend chart (Process Variable PV, Setpoint SP, Controller Output OP) with live disturbance injections (Pump Cavitation, Exchanger Tube Fouling, CSTR Exothermic Runaway, Column Flooding).
-- **PID Controller Tuning Workbench**: Proportional gain ($K_p$), integral reset time ($\tau_i$), derivative rate ($\tau_d$) with closed-loop step response simulation, rise time ($t_r$), overshoot ($M_p$), settling time ($t_s$), and classical tuning presets (Ziegler-Nichols, Cohen-Coon, IMC).
+### 8. Industrial Digital Twin Centre & Plant Automation (`DigitalTwinWorkspace.tsx`)
+- **SCADA Historian Trends Monitor**: Real-time multi-pen trend chart (Process Variable PV, Setpoint SP, Controller Output OP) with live disturbance injections.
+- **PID Controller Tuning Workbench**: Proportional gain ($K_p$), integral reset time ($\tau_i$), derivative rate ($\tau_d$) with closed-loop step response simulation.
 - **Process Safety & HAZOP Studio**: IEC 61882 HAZOP worksheet, guide word deviations, and $5 \times 5$ Risk Assessment Matrix with Safety Integrity Level (SIL 1 to 4) allocation per IEC 61511.
-- **Digital Twin Three-Tier Hierarchy**: Level 1 (Component physics), Level 2 (Unit operations), Level 3 (Plant-wide DCS & recycle loops).
 
-### 7. Career & Placement Readiness Centre (`CareerWorkspace.tsx`)
-- **8 Industrial Career Pathways**: Process Engineering (EPC/FEED), Plant Operations & Production, Process Simulation, Process Control & Automation, Process Safety & HSE, R&D & Catalysis, Energy Transition & Decarbonization, Industrial Data Science & AI.
-- **Technical Interview Question Bank**: 100+ vetted core chemical engineering questions categorized by subject (Fluid Mechanics, Heat Transfer, Mass Transfer, Reaction Engineering, Thermodynamics, Process Control, Safety) with comprehensive technical rationale.
-- **6 Interactive Plant Troubleshooting Scenarios**: Field alarms, DCS telemetry logs, root-cause diagnostic quizzes, and emergency corrective actions for refinery and petrochemical incidents.
-- **ChemE Software & Python Tools Hub**: Ready-to-use Python scripts (Pump hydraulics, McCabe-Thiele stage stepping, numerical ODE solvers).
-
-### 8. Engineering Project Portfolio (`PortfolioWorkspace.tsx`)
-- Student Capstone & Coursework Project Builder: Document student credentials, USN, problem statements, governing equations, design assumptions, and results.
-- 4 Detailed Industrial Case Studies: Centrifugal pump network optimization, shell & tube preheater fouling analysis, exothermic CSTR thermal runaway verification, biodiesel plant design.
-- Printable, evidence-based engineering verification dossier with SHA-256 digital stamp.
-
-### 9. Faculty & Departmental Management Portal (`FacultyWorkspace.tsx`)
-- **NBA / ABET Outcome-Based Education (OBE) Compliance**: Articulation matrix mapping Course Outcomes (CO1 to CO5) to Program Outcomes (PO1 to PO12) and PSOs.
-- Student cohort tracking, assignment distribution, and laboratory viva grading rubrics.
-- Departmental attainment analytics and exportable NBA Accreditation Evidence Dossiers.
+### 9. Career Readiness & Capstone Portfolio (`CareerWorkspace.tsx` & `PortfolioWorkspace.tsx`)
+- **8 Industrial Career Pathways**: Process Engineering, Plant Operations, Simulation, Control, Safety, R&D, Energy Transition, Data Science.
+- **100+ Vetted Technical Interview Questions** with engineering rationale.
+- **6 Interactive Troubleshooting Scenarios**: Field alarms, DCS telemetry logs, root-cause diagnostic quizzes.
+- **Student Capstone Project Dossier Builder**: With SHA-256 digital verification stamps.
 
 ---
 
@@ -113,20 +119,23 @@ chem-sim/
 ├── frontend/                    # Vite + React + TypeScript
 │   ├── src/
 │   │   ├── workspaces/          # Master Platform Workspaces
-│   │   │   ├── HomeWorkspace.tsx        # Orientation & mission dashboard
-│   │   │   ├── AcademicWorkspace.tsx    # VTU curriculum & lab engine
-│   │   │   ├── ToolboxWorkspace.tsx     # 30+ engineering calculators
-│   │   │   ├── DesignWorkspace.tsx      # PFD/P&ID flowsheet studio
-│   │   │   ├── DigitalTwinWorkspace.tsx # SCADA historian & PID tuner
-│   │   │   ├── CareerWorkspace.tsx      # 8 pathways & interview bank
-│   │   │   ├── PortfolioWorkspace.tsx   # Verified capstone builder
-│   │   │   └── FacultyWorkspace.tsx     # NBA/ABET OBE portal
+│   │   │   ├── HomeWorkspace.tsx          # Premium landing page & hero process loop
+│   │   │   ├── VisualConceptExplorer.tsx  # Interactive 2D physics diagrams & profiles
+│   │   │   ├── ExperimentWorkspace.tsx    # 7-stage university laboratory workflow
+│   │   │   ├── TeacherWorkspace.tsx       # Classroom presentation & grading studio
+│   │   │   ├── ToolboxWorkspace.tsx       # 30+ engineering calculators
+│   │   │   ├── DesignWorkspace.tsx        # PFD/P&ID flowsheet studio
+│   │   │   ├── DigitalTwinWorkspace.tsx   # SCADA historian & PID tuner
+│   │   │   ├── CareerWorkspace.tsx        # 8 pathways & interview bank
+│   │   │   ├── PortfolioWorkspace.tsx     # Verified capstone builder
+│   │   │   └── AcademicWorkspace.tsx      # VTU curriculum & course outcomes
 │   │   ├── components/          # Flagship UI Components
-│   │   │   ├── Pump3DViewer.tsx         # Interactive 3D pump anatomy
-│   │   │   ├── PumpPerformanceChart.tsx # H-Q, Efficiency, Power, NPSH curves
+│   │   │   ├── ChemSimLogo.tsx            # Brand crest & corporate wordmark
+│   │   │   ├── Pump3DViewer.tsx           # Interactive 3D pump anatomy
+│   │   │   ├── PumpPerformanceChart.tsx   # H-Q, Efficiency, Power, NPSH curves
 │   │   │   ├── PumpVirtualExperiments.tsx # Guided EXP-01 to 15 workbench
-│   │   │   ├── PumpFaultDiagnostics.tsx # Real-time fault simulation
-│   │   │   └── PumpReportExport.tsx     # Laboratory report generator
+│   │   │   ├── PumpFaultDiagnostics.tsx   # Real-time fault simulation
+│   │   │   └── PumpReportExport.tsx       # Laboratory report generator
 │   │   ├── CentrifugalPumpModule.tsx    # Flagship 1 (PROTECTED)
 │   │   ├── FluidisationModule.tsx       # Flagship 2 (PROTECTED)
 │   │   ├── FluidisedBedApparatus.tsx    # Physical fluidisation column
