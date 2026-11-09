@@ -792,17 +792,17 @@ export function HomeWorkspace({ onNavigate }: HomeWorkspaceProps) {
             Everything a chemical engineering student needs to bridge university textbooks with industrial practice:
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: '0.78rem', color: '#cbd5e1' }}>
-            <div>• <strong>Virtual Experiments:</strong> Step-by-step SOPs, observation tables, and viva answers.</div>
-            <div>• <strong>Process Design Studio:</strong> Build PFDs and generate API 610/TEMA equipment datasheets.</div>
-            <div>• <strong>Engineering Portfolio:</strong> Document capstone projects and export verified PDF dossiers.</div>
-            <div>• <strong>Career Readiness:</strong> 8 industrial pathways, 100+ interview Q&As, and plant troubleshooting.</div>
+            <div>• <strong>Degree Curriculum Engine:</strong> Semesters III to VIII with configurable electives and 8-stage learning pathways.</div>
+            <div>• <strong>Virtual Experiments:</strong> 7-step guided workflow, live observation tables, and automated lab reports.</div>
+            <div>• <strong>Process Design Studio:</strong> Build PFD/P&ID flowsheets and generate API 610/TEMA equipment datasheets.</div>
+            <div>• <strong>Career Readiness Hub:</strong> 10 placement tracks, 10 industrial troubleshooting scenarios, and STAR resume builder.</div>
           </div>
           <button
             type="button"
-            onClick={() => onNavigate('lab')}
+            onClick={() => onNavigate('academic')}
             style={{ marginTop: 'auto', background: '#1e293b', color: '#38bdf8', border: '1px solid #334155', padding: '8px 14px', borderRadius: 6, fontSize: '0.76rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
           >
-            Start Virtual Laboratory <ChevronRight size={14} />
+            Explore Degree Curriculum <ChevronRight size={14} />
           </button>
         </div>
 
@@ -812,23 +812,23 @@ export function HomeWorkspace({ onNavigate }: HomeWorkspaceProps) {
             <span style={{ background: '#2563eb', color: '#ffffff', fontSize: '0.72rem', fontWeight: 800, padding: '2px 8px', borderRadius: 4 }}>
               FOR FACULTY
             </span>
-            <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>Classroom Teaching & Demonstration</span>
+            <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>Classroom Teaching & Demonstration Studio</span>
           </div>
           <p style={{ fontSize: '0.82rem', color: '#94a3b8', lineHeight: 1.5, margin: 0 }}>
-            Tools built specifically for professors and lab instructors to deliver engaging classroom lectures:
+            Tools built specifically for engineering professors and laboratory instructors:
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: '0.78rem', color: '#cbd5e1' }}>
-            <div>• <strong>Classroom Presentation Mode:</strong> Fullscreen stage, component highlighter, and clean chalkboards.</div>
-            <div>• <strong>Dual Scenario Comparison:</strong> Demonstrate speed throttling vs discharge throttling live in class.</div>
-            <div>• <strong>Shared Classroom Activities:</strong> Broadcast reactor or heat exchanger challenges to student devices.</div>
-            <div>• <strong>Student Submission Review:</strong> Grade virtual lab reports, assess simulation accuracy, and provide feedback.</div>
+            <div>• <strong>Interactive Whiteboard:</strong> Draw process equipment diagrams, annotate flows, and write equations.</div>
+            <div>• <strong>Step-by-Step Derivation Mode:</strong> Reveal 9 core transport & reaction derivations one step at a time.</div>
+            <div>• <strong>Classroom Presentation Mode:</strong> Fullscreen stage, laser pointer, and dual Scenario A vs B comparison.</div>
+            <div>• <strong>Classroom Polls & Quizzes:</strong> Broadcast live numerical polls and challenge students in real time.</div>
           </div>
           <button
             type="button"
             onClick={() => onNavigate('teacher-home')}
             style={{ marginTop: 'auto', background: '#1e293b', color: '#60a5fa', border: '1px solid #334155', padding: '8px 14px', borderRadius: 6, fontSize: '0.76rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
           >
-            Open Teacher Workspace <ChevronRight size={14} />
+            Open Teaching Studio <ChevronRight size={14} />
           </button>
         </div>
       </section>

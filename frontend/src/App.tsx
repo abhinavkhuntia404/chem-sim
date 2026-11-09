@@ -117,10 +117,18 @@ export function App() {
 
             <button
               type="button"
+              className={`top-nav-link ${activeModule === 'academic' ? 'active' : ''}`}
+              onClick={() => handleNavigate('academic')}
+            >
+              Curriculum
+            </button>
+
+            <button
+              type="button"
               className={`top-nav-link ${activeModule === 'learn' ? 'active' : ''}`}
               onClick={() => handleNavigate('learn')}
             >
-              Learn
+              Concepts
             </button>
 
             {/* Simulations Dropdown Link */}
@@ -212,7 +220,7 @@ export function App() {
               className={`top-nav-link ${activeModule === 'design' ? 'active' : ''}`}
               onClick={() => handleNavigate('design')}
             >
-              Process Design
+              Design Studio
             </button>
 
             <button
@@ -237,6 +245,14 @@ export function App() {
               onClick={() => handleNavigate('career')}
             >
               Career
+            </button>
+
+            <button
+              type="button"
+              className={`top-nav-link ${activeModule === 'portfolio' ? 'active' : ''}`}
+              onClick={() => handleNavigate('portfolio')}
+            >
+              Portfolio
             </button>
           </nav>
         </div>
@@ -399,6 +415,7 @@ export function App() {
 
           {[
             { id: 'home', label: 'Home Landing Page' },
+            { id: 'academic', label: 'Degree Curriculum (Sem III - VIII)' },
             { id: 'learn', label: 'Visual Concept Studio' },
             { id: 'centrifugal-pump', label: 'Centrifugal Pump Digital Twin' },
             { id: 'fluidisation', label: 'Fluidisation Unit' },

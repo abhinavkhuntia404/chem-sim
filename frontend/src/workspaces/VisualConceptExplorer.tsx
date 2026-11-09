@@ -7,6 +7,10 @@ import {
   Droplet,
   Play,
   Pause,
+  BookOpen,
+  FileText,
+  Compass,
+  AlertTriangle,
   ExternalLink,
 } from 'lucide-react';
 
@@ -15,8 +19,21 @@ interface VisualConceptExplorerProps {
 }
 
 export function VisualConceptExplorer({ onLaunchSimulation }: VisualConceptExplorerProps) {
+  const [studioMode, setStudioMode] = useState<'diagrams' | 'equations' | 'solver' | 'misconceptions' | 'graph'>('diagrams');
   const [activeConcept, setActiveConcept] = useState<'fluid' | 'heat' | 'reaction' | 'vle' | 'thermo'>('fluid');
   const [animating, setAnimating] = useState<boolean>(true);
+
+  // --- Equation Explorer State ---
+  const [selectedEqIndex, setSelectedEqIndex] = useState<number>(0);
+  const [selectedVariable, setSelectedVariable] = useState<string>('f');
+
+  // --- Misconception Detector State ---
+  const [selectedMisconceptionIndex, setSelectedMisconceptionIndex] = useState<number>(0);
+  const [selectedQuizAnswer, setSelectedQuizAnswer] = useState<number | null>(null);
+  const [quizSubmitted, setQuizSubmitted] = useState<boolean>(false);
+
+  // --- Knowledge Graph State ---
+  const [selectedGraphNode, setSelectedGraphNode] = useState<string>('fluids');
 
   // --- Concept 1: Fluid Mechanics (Laminar vs Turbulent Pipe Flow) ---
   const [reynoldsNum, setReynoldsNum] = useState<number>(1800); // Laminar by default
@@ -90,50 +107,15 @@ export function VisualConceptExplorer({ onLaunchSimulation }: VisualConceptExplo
           </div>
 
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-            <button
-              type="button"
-              onClick={() => setAnimating(!animating)}
-              style={{
-                background: animating ? '#0284c7' : '#1e293b',
-                color: '#ffffff',
-                border: '1px solid #334155',
-                padding: '6px 14px',
-                borderRadius: 6,
-                fontSize: '0.78rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-              }}
-            >
-              {animating ? <Pause size={14} /> : <Play size={14} />}
-              {animating ? 'Animations Active' : 'Animations Paused'}
-            </button>
-          </div>
-        </div>
-
-        {/* Concept Selector Pill Buttons */}
-        <div style={{ display: 'flex', gap: 8, marginTop: 18, flexWrap: 'wrap' }}>
-          {[
-            { id: 'fluid', label: '1. Velocity Profiles & Reynolds Number', icon: Wind },
-            { id: 'heat', label: '2. Heat Exchanger Temperature Gradients', icon: Flame },
-            { id: 'reaction', label: '3. CSTR vs. PFR Concentration Profiles', icon: Atom },
-            { id: 'vle', label: '4. VLE Equilibrium & McCabe-Thiele', icon: Layers },
-            { id: 'thermo', label: '5. Vapor-Liquid Phase Envelope (T-x-y)', icon: Droplet },
-          ].map((c) => {
-            const Icon = c.icon;
-            const isSelected = activeConcept === c.id;
-            return (
+            {studioMode === 'diagrams' && (
               <button
-                key={c.id}
                 type="button"
-                onClick={() => setActiveConcept(c.id as any)}
+                onClick={() => setAnimating(!animating)}
                 style={{
-                  background: isSelected ? '#0284c7' : '#0f172a',
-                  color: isSelected ? '#ffffff' : '#94a3b8',
-                  border: isSelected ? '1px solid #38bdf8' : '1px solid #1e293b',
-                  padding: '8px 14px',
+                  background: animating ? '#0284c7' : '#1e293b',
+                  color: '#ffffff',
+                  border: '1px solid #334155',
+                  padding: '6px 14px',
                   borderRadius: 6,
                   fontSize: '0.78rem',
                   fontWeight: 700,
@@ -141,20 +123,99 @@ export function VisualConceptExplorer({ onLaunchSimulation }: VisualConceptExplo
                   display: 'flex',
                   alignItems: 'center',
                   gap: 6,
-                  transition: 'all 0.15s ease',
                 }}
               >
-                <Icon size={14} /> {c.label}
+                {animating ? <Pause size={14} /> : <Play size={14} />}
+                {animating ? 'Animations Active' : 'Animations Paused'}
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Primary Studio Navigation Bar */}
+        <div style={{ display: 'flex', gap: 6, marginTop: 18, borderBottom: '1px solid #1e3a8a', paddingBottom: 12, overflowX: 'auto' }}>
+          {[
+            { id: 'diagrams', label: 'Interactive Physics Diagrams', icon: Compass },
+            { id: 'equations', label: 'Equation Explorer & Variables', icon: BookOpen },
+            { id: 'solver', label: '8-Step Engineering Problem Solver', icon: FileText },
+            { id: 'misconceptions', label: 'Misconception Detector (8 Traps)', icon: AlertTriangle },
+            { id: 'graph', label: 'Degree Knowledge Graph', icon: Layers },
+          ].map((m) => {
+            const Icon = m.icon;
+            const isActive = studioMode === m.id;
+            return (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => setStudioMode(m.id as any)}
+                style={{
+                  background: isActive ? '#2563eb' : '#0f172a',
+                  color: isActive ? '#ffffff' : '#94a3b8',
+                  border: isActive ? '1px solid #60a5fa' : '1px solid #1e293b',
+                  padding: '8px 16px',
+                  borderRadius: 6,
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                <Icon size={14} /> {m.label}
               </button>
             );
           })}
         </div>
+
+        {/* Concept Selector Pill Buttons (Only in Diagrams Mode) */}
+        {studioMode === 'diagrams' && (
+          <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
+            {[
+              { id: 'fluid', label: '1. Velocity Profiles & Reynolds Number', icon: Wind },
+              { id: 'heat', label: '2. Heat Exchanger Temperature Gradients', icon: Flame },
+              { id: 'reaction', label: '3. CSTR vs. PFR Concentration Profiles', icon: Atom },
+              { id: 'vle', label: '4. VLE Equilibrium & McCabe-Thiele', icon: Layers },
+              { id: 'thermo', label: '5. Vapor-Liquid Phase Envelope (T-x-y)', icon: Droplet },
+            ].map((c) => {
+              const Icon = c.icon;
+              const isSelected = activeConcept === c.id;
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setActiveConcept(c.id as any)}
+                  style={{
+                    background: isSelected ? '#0284c7' : '#0f172a',
+                    color: isSelected ? '#ffffff' : '#94a3b8',
+                    border: isSelected ? '1px solid #38bdf8' : '1px solid #1e293b',
+                    padding: '8px 14px',
+                    borderRadius: 6,
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <Icon size={14} /> {c.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* ------------------------------------------------------------- */}
-      {/* CONCEPT 1: FLUID MECHANICS (VELOCITY PROFILES)                */}
+      {/* 1. DIAGRAMS MODE WRAPPER                                      */}
       {/* ------------------------------------------------------------- */}
-      {activeConcept === 'fluid' && (
+      {studioMode === 'diagrams' && (
+        <>
+          {/* CONCEPT 1: FLUID MECHANICS (VELOCITY PROFILES) */}
+          {activeConcept === 'fluid' && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 18 }}>
           {/* Main SVG Visualization Canvas */}
           <div
@@ -1094,12 +1155,350 @@ export function VisualConceptExplorer({ onLaunchSimulation }: VisualConceptExplo
             <div style={{ background: '#1e293b', padding: 14, borderRadius: 8, fontSize: '0.74rem', color: '#cbd5e1', lineHeight: 1.5 }}>
               <div>• <strong>Bubble Point Curve (Blue):</strong> Saturated liquid boundary. Heating beyond this point produces the first bubble of vapor.</div>
               <div style={{ marginTop: 8 }}>• <strong>Dew Point Curve (Orange):</strong> Saturated vapor boundary. Cooling below this point produces the first drop of condensate.</div>
-              <div style={{ marginTop: 8 }}>• <strong>Lever Arm Rule:</strong> Inside the two-phase envelope at temperature $T$:
+              <div style={{ marginTop: 8 }}>• <strong>Lever Arm Rule:</strong> Inside the two-phase envelope at temperature T:
                 <div style={{ fontFamily: 'monospace', color: '#34d399', margin: '4px 0' }}>
                   V / L = (z - x) / (y - z)
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+      </>
+      )}
+
+      {/* ============================================================= */}
+      {/* 2. EQUATION EXPLORER & VARIABLE SENSITIVITY INSPECTOR         */}
+      {/* ============================================================= */}
+      {studioMode === 'equations' && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(280px, 320px) 1fr', gap: 20 }}>
+          {/* Equation Selector */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>
+              Select Governing Equation
+            </div>
+            {[
+              { id: 0, title: 'Darcy-Weisbach Pipe Head Loss', eq: 'ΔP = f * (L/D) * (ρ v² / 2)', subject: 'Fluid Mechanics' },
+              { id: 1, title: 'Ergun Packed Bed Pressure Drop', eq: 'ΔP/L = 150(1-ε)²μ u0 / (ε³ dp²) + 1.75(1-ε)ρ u0² / (ε³ dp)', subject: 'Mechanical Operations' },
+              { id: 2, title: 'Log Mean Temperature Difference (LMTD)', eq: 'ΔT_lm = (ΔT1 - ΔT2) / ln(ΔT1 / ΔT2)', subject: 'Process Heat Transfer' },
+              { id: 3, title: 'CSTR Performance Design Equation', eq: 'V = (F_A0 * X_A) / (-r_A)', subject: 'Reaction Engineering' },
+              { id: 4, title: 'Arrhenius Temperature Dependence', eq: 'k = A * exp(-E_a / (R * T))', subject: 'Reaction Kinetics' },
+              { id: 5, title: 'Fick’s First Law of Molecular Diffusion', eq: 'J_A = - D_AB * (dC_A / dz)', subject: 'Mass Transfer Operations' },
+            ].map((item) => (
+              <div
+                key={item.id}
+                onClick={() => {
+                  setSelectedEqIndex(item.id);
+                  if (item.id === 0) setSelectedVariable('f');
+                  if (item.id === 1) setSelectedVariable('eps');
+                  if (item.id === 2) setSelectedVariable('dT1');
+                  if (item.id === 3) setSelectedVariable('V');
+                  if (item.id === 4) setSelectedVariable('Ea');
+                  if (item.id === 5) setSelectedVariable('DAB');
+                }}
+                style={{
+                  background: selectedEqIndex === item.id ? '#1e3a8a' : '#0f172a',
+                  border: selectedEqIndex === item.id ? '1px solid #38bdf8' : '1px solid #1e293b',
+                  borderRadius: 8,
+                  padding: 12,
+                  cursor: 'pointer',
+                }}
+              >
+                <div style={{ fontSize: '0.68rem', color: '#38bdf8', fontWeight: 800 }}>{item.subject}</div>
+                <div style={{ fontSize: '0.84rem', fontWeight: 700, color: '#f8fafc', margin: '2px 0 4px' }}>{item.title}</div>
+                <div style={{ fontFamily: 'monospace', fontSize: '0.74rem', color: '#94a3b8' }}>{item.eq}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Equation Detailed Inspector */}
+          <div style={{ background: '#090d16', border: '1px solid #1e3a8a', borderRadius: 12, padding: 22, display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {selectedEqIndex === 0 && (
+              <>
+                <div>
+                  <span style={{ fontSize: '0.72rem', color: '#38bdf8', fontWeight: 800 }}>MOMENTUM TRANSFER</span>
+                  <h2 style={{ fontSize: '1.3rem', fontWeight: 800, color: '#ffffff', margin: '4px 0' }}>
+                    Darcy-Weisbach Pipe Friction Head Loss
+                  </h2>
+                  <div style={{ fontFamily: 'monospace', fontSize: '1.1rem', color: '#34d399', background: '#0c1424', padding: 12, borderRadius: 6, margin: '8px 0' }}>
+                    ΔP = f · (L / D) · (ρ · v² / 2)
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#cbd5e1', marginBottom: 8 }}>
+                    Click Any Variable to Inspect Its Physics:
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {[
+                      { key: 'dP', symbol: 'ΔP', label: 'Pressure Drop' },
+                      { key: 'f', symbol: 'f', label: 'Darcy Friction Factor' },
+                      { key: 'L', symbol: 'L', label: 'Pipe Length' },
+                      { key: 'D', symbol: 'D', label: 'Pipe Internal Diameter' },
+                      { key: 'rho', symbol: 'ρ', label: 'Fluid Density' },
+                      { key: 'v', symbol: 'v', label: 'Flow Velocity' },
+                    ].map((v) => (
+                      <button
+                        key={v.key}
+                        type="button"
+                        onClick={() => setSelectedVariable(v.key)}
+                        style={{
+                          background: selectedVariable === v.key ? '#0284c7' : '#0f172a',
+                          color: selectedVariable === v.key ? '#ffffff' : '#94a3b8',
+                          border: selectedVariable === v.key ? '1px solid #38bdf8' : '1px solid #334155',
+                          padding: '6px 12px',
+                          borderRadius: 6,
+                          fontSize: '0.78rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {v.symbol} ({v.label})
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Variable Breakdown */}
+                <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 8, padding: 16 }}>
+                  {selectedVariable === 'f' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: '0.82rem', color: '#cbd5e1' }}>
+                      <div><strong style={{ color: '#38bdf8' }}>Variable:</strong> Darcy friction factor (f)</div>
+                      <div><strong style={{ color: '#38bdf8' }}>SI Units:</strong> Dimensionless [1] (Note: f_Darcy = 4 * f_Fanning)</div>
+                      <div><strong style={{ color: '#38bdf8' }}>Physical Meaning:</strong> Ratio of wall shear stress to kinetic energy per unit volume: f = 8 τ_w / (ρ v²).</div>
+                      <div><strong style={{ color: '#38bdf8' }}>Sensitivity:</strong> For laminar flow (Re &lt; 2100), f = 64 / Re. For turbulent flow, governed by Colebrook-White equation depending on relative roughness ε/D.</div>
+                      <div><strong style={{ color: '#38bdf8' }}>Industrial Example:</strong> Commercial clean carbon steel pipe (ε = 0.045 mm) at Re = 150,000 yields f ≈ 0.021.</div>
+                    </div>
+                  )}
+                  {selectedVariable === 'D' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: '0.82rem', color: '#cbd5e1' }}>
+                      <div><strong style={{ color: '#38bdf8' }}>Variable:</strong> Pipe Internal Diameter (D)</div>
+                      <div><strong style={{ color: '#38bdf8' }}>SI Units:</strong> Meters [m]</div>
+                      <div><strong style={{ color: '#38bdf8' }}>Extreme Sensitivity (D⁻⁵ Law):</strong> At constant volumetric flow rate Q, since v = 4Q/(π D²), pressure drop scales as ΔP ∝ 1 / D⁵! Halving pipe diameter increases pressure drop by 32 times!</div>
+                      <div><strong style={{ color: '#38bdf8' }}>Industrial Practice:</strong> Never undersize process piping lines to save initial pipe cost; pumping operating power will quickly overwhelm capital savings.</div>
+                    </div>
+                  )}
+                  {selectedVariable !== 'f' && selectedVariable !== 'D' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: '0.82rem', color: '#cbd5e1' }}>
+                      <div><strong style={{ color: '#38bdf8' }}>Variable:</strong> Selected parameter in Darcy-Weisbach mechanical energy balance.</div>
+                      <div><strong style={{ color: '#38bdf8' }}>Velocity Scaling:</strong> ΔP scales quadratically with flow velocity (v²). Operating at high velocities above 3 m/s causes excessive erosion and hydraulic water hammer.</div>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
+            {selectedEqIndex !== 0 && (
+              <div style={{ padding: 20, textAlign: 'center', color: '#94a3b8', fontSize: '0.88rem' }}>
+                Inspect variable units, dimensions, sensitivities, and worked numerical examples for {selectedEqIndex === 1 ? 'Ergun packed bed equation' : selectedEqIndex === 2 ? 'LMTD heat exchanger rating' : selectedEqIndex === 3 ? 'CSTR mole balance' : selectedEqIndex === 4 ? 'Arrhenius rate constant' : 'Fick diffusion flux'}.
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================= */}
+      {/* 3. 8-STEP ENGINEERING PROBLEM SOLVER                          */}
+      {/* ============================================================= */}
+      {studioMode === 'solver' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+          <div style={{ background: '#090d16', border: '1px solid #1e3a8a', borderRadius: 12, padding: 22, display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ background: '#0284c7', color: '#ffffff', fontSize: '0.72rem', fontWeight: 800, padding: '3px 8px', borderRadius: 4 }}>
+                8-STAGE FIRST-PRINCIPLES SOLVER
+              </span>
+              <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>Methodical Engineering Framework</span>
+            </div>
+
+            <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#ffffff' }}>
+              Problem: Head Loss & Pump Brake Power in Turbulent Steel Pipe
+            </div>
+
+            <div style={{ background: '#0c1424', borderLeft: '3px solid #38bdf8', padding: 12, borderRadius: 6, fontSize: '0.84rem', color: '#e2e8f0', lineHeight: 1.5 }}>
+              Water at 20°C (ρ = 1000 kg/m³, μ = 0.001 Pa·s) is pumped through a 50 mm ID commercial steel pipe (roughness ε = 0.045 mm) of length 60 m at a flow rate of 20 m³/h. The discharge reservoir is elevated 15 m above the suction tank. The pump hydraulic efficiency is 72%. Calculate total pressure drop and required motor brake power.
+            </div>
+
+            {/* 8 Methodical Steps */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 10, marginTop: 6 }}>
+              {[
+                { step: 1, title: 'Identify Knowns', desc: 'Q = 20 m³/h = 0.00556 m³/s, D = 0.05 m, L = 60 m, ε = 0.045 mm, Δz = 15 m, η = 0.72, ρ = 1000 kg/m³, μ = 1e-3 Pa·s' },
+                { step: 2, title: 'Identify Unknowns', desc: 'Target: Total dynamic head H [m], Pressure drop ΔP [kPa], Motor brake power P_brake [kW]' },
+                { step: 3, title: 'Governing Equations', desc: 'Continuity: v = Q/A. Re = ρ v D / μ. Colebrook: 1/√f = -2 log(ε/3.7D + 2.51/Re√f). Darcy: h_f = f(L/D)(v²/2g). Power: P = ρ g Q H / η' },
+                { step: 4, title: 'Unit Consistency Check', desc: 'Convert Q from m³/h to m³/s: 20 / 3600 = 0.00556 m³/s. Area A = π(0.05)²/4 = 0.001963 m²' },
+                { step: 5, title: 'Numerical Substitution', desc: 'v = 0.00556 / 0.001963 = 2.83 m/s. Re = (1000 * 2.83 * 0.05) / 1e-3 = 141,500 (Turbulent). ε/D = 0.045/50 = 0.0009' },
+                { step: 6, title: 'Compute Solution', desc: 'f = 0.0212. h_f = 0.0212 * (60/0.05) * (2.83)² / (2 * 9.81) = 10.38 m. H_total = 15 + 10.38 = 25.38 m. P_brake = (1000 * 9.81 * 0.00556 * 25.38) / (1000 * 0.72) = 1.92 kW' },
+                { step: 7, title: 'Physical Meaning', desc: 'Friction in the 60m pipe consumes 10.38 m (41%) of total pump head. Static elevation accounts for the remaining 59% (15 m)' },
+                { step: 8, title: 'Sanity Check / Rules of Thumb', desc: 'Velocity v = 2.83 m/s is within the acceptable industrial liquid discharge range (1.5 - 3.0 m/s). Motor power of 2.2 kW standard motor covers 1.92 kW with a 15% safety factor' },
+              ].map((s) => (
+                <div key={s.step} style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 8, padding: 12 }}>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#38bdf8', textTransform: 'uppercase', marginBottom: 2 }}>
+                    Step {s.step}: {s.title}
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: '#cbd5e1', lineHeight: 1.4 }}>
+                    {s.desc}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================= */}
+      {/* 4. MISCONCEPTION DETECTOR (8 CLASSIC TRAPS)                   */}
+      {/* ============================================================= */}
+      {studioMode === 'misconceptions' && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(280px, 340px) 1fr', gap: 20 }}>
+          {/* Trap Selector */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>
+              8 Classic Conceptual Traps
+            </div>
+            {[
+              { id: 0, title: '1. Pressure vs Developed Head' },
+              { id: 1, title: '2. Mass Fraction vs Mole Fraction' },
+              { id: 2, title: '3. Critical Reynolds Number in Beds' },
+              { id: 3, title: '4. Equilibrium Line vs Operating Line' },
+              { id: 4, title: '5. CSTR vs PFR Concentration Gradients' },
+              { id: 5, title: '6. Misusing LMTD in Multi-Pass Exchangers' },
+              { id: 6, title: '7. Steady-State vs Transient Response' },
+              { id: 7, title: '8. Theoretical Stages vs Actual Trays' },
+            ].map((trap) => (
+              <button
+                key={trap.id}
+                type="button"
+                onClick={() => {
+                  setSelectedMisconceptionIndex(trap.id);
+                  setSelectedQuizAnswer(null);
+                  setQuizSubmitted(false);
+                }}
+                style={{
+                  background: selectedMisconceptionIndex === trap.id ? '#1e3a8a' : '#0f172a',
+                  color: selectedMisconceptionIndex === trap.id ? '#ffffff' : '#94a3b8',
+                  border: selectedMisconceptionIndex === trap.id ? '1px solid #38bdf8' : '1px solid #1e293b',
+                  padding: '10px 14px',
+                  borderRadius: 6,
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                }}
+              >
+                {trap.title}
+              </button>
+            ))}
+          </div>
+
+          {/* Diagnostic Question & Analysis */}
+          <div style={{ background: '#090d16', border: '1px solid #1e3a8a', borderRadius: 12, padding: 22, display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {selectedMisconceptionIndex === 0 && (
+              <>
+                <div>
+                  <span style={{ fontSize: '0.72rem', color: '#f59e0b', fontWeight: 800 }}>CONCEPTUAL DIAGNOSTIC TRAP #1</span>
+                  <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#ffffff', margin: '4px 0' }}>
+                    Does a centrifugal pump generate the same pressure when pumping gasoline as when pumping water at the same RPM?
+                  </h2>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {[
+                    { id: 0, text: 'Yes, because the impeller diameter and speed determine the output pressure.', isCorrect: false },
+                    { id: 1, text: 'No, the pump generates constant head (meters of liquid column), but pressure P = ρ g H is 28% lower for gasoline due to lower density (720 vs 1000 kg/m³).', isCorrect: true },
+                    { id: 2, text: 'Yes, but power consumption will be 50% higher.', isCorrect: false },
+                  ].map((opt) => (
+                    <div
+                      key={opt.id}
+                      onClick={() => {
+                        setSelectedQuizAnswer(opt.id);
+                        setQuizSubmitted(true);
+                      }}
+                      style={{
+                        background: selectedQuizAnswer === opt.id ? (opt.isCorrect ? '#064e3b' : '#7f1d1d') : '#0f172a',
+                        border: selectedQuizAnswer === opt.id ? (opt.isCorrect ? '1px solid #10b981' : '1px solid #ef4444') : '1px solid #1e293b',
+                        padding: 12,
+                        borderRadius: 8,
+                        cursor: 'pointer',
+                        fontSize: '0.84rem',
+                        color: '#f8fafc',
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      {opt.text}
+                    </div>
+                  ))}
+                </div>
+
+                {quizSubmitted && (
+                  <div style={{ background: '#0c1424', border: '1px solid #10b981', borderRadius: 8, padding: 14, fontSize: '0.8rem', color: '#cbd5e1', lineHeight: 1.5 }}>
+                    <div style={{ fontWeight: 800, color: '#10b981', marginBottom: 4 }}>
+                      Engineering Physical Principle:
+                    </div>
+                    Centrifugal impellers impart velocity to fluid particles governed purely by geometry and angular velocity: u2 = ω r2. Therefore, developed head H = (u2 v_t2)/g is independent of fluid density. However, static pressure P = ρ g H depends directly on fluid density! A pump delivering 50 m of head will produce 490 kPa with water (1000 kg/m³), but only 353 kPa with gasoline (720 kg/m³).
+                  </div>
+                )}
+              </>
+            )}
+
+            {selectedMisconceptionIndex !== 0 && (
+              <div style={{ padding: 20, textAlign: 'center', color: '#94a3b8', fontSize: '0.86rem' }}>
+                Select an answer to test your conceptual intuition and inspect the detailed first-principles breakdown.
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================= */}
+      {/* 5. DEGREE KNOWLEDGE GRAPH & PREREQUISITES                     */}
+      {/* ============================================================= */}
+      {studioMode === 'graph' && (
+        <div style={{ background: '#090d16', border: '1px solid #1e3a8a', borderRadius: 12, padding: 22, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div>
+            <span style={{ fontSize: '0.72rem', color: '#38bdf8', fontWeight: 800 }}>CURRICULUM PREREQUISITE ARCHITECTURE</span>
+            <h2 style={{ fontSize: '1.3rem', fontWeight: 800, color: '#ffffff', margin: '4px 0' }}>
+              Chemical Engineering Degree Knowledge Graph
+            </h2>
+            <p style={{ fontSize: '0.82rem', color: '#94a3b8', margin: 0 }}>
+              Visualizing how foundational 2nd-year physics flow into 3rd-year unit operations, 4th-year plant design, and industrial troubleshooting.
+            </p>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12 }}>
+            {[
+              { id: 'fluids', title: 'Momentum Transfer (Sem III)', prereq: 'Integral Transforms (Math)', next: 'Process Equipment Design (Sem V)', career: 'Piping & Line Sizing' },
+              { id: 'pumps', title: 'Centrifugal Turbomachinery', prereq: 'Bernoulli Balance (Sem III)', next: 'Process Control Loops (Sem VI)', career: 'API 610 Pump Sizing' },
+              { id: 'heat', title: 'Process Heat Transfer (Sem IV)', prereq: 'Conduction & Convection', next: 'Pinch Heat Integration (Sem VII)', career: 'TEMA Exchanger Rating' },
+              { id: 'thermo', title: 'Thermodynamics & VLE (Sem IV)', prereq: 'Physical Chemistry', next: 'Binary Distillation (Sem V)', career: 'Property Method Selection' },
+              { id: 'cre', title: 'Reaction Engineering (Sem IV & V)', prereq: 'Chemical Kinetics', next: 'Reactor Runaway Control (Sem VI)', career: 'Scaleup & Kinetic Modeling' },
+              { id: 'control', title: 'Process Dynamics & Control (Sem VI)', prereq: 'Laplace Transforms & Transfer Functions', next: 'DCS & SCADA Operations', career: 'PID Loop Tuning (Emerson/Honeywell)' },
+              { id: 'design', title: 'Plant Design & Economics (Sem VII)', prereq: 'H&MB Stoichiometry + Equipment Sizing', next: 'Final Year Capstone Project (Sem VIII)', career: 'FEED Process Engineering' },
+              { id: 'troubleshoot', title: 'Industrial Plant Troubleshooting', prereq: 'All Degree Engineering Competencies', next: 'Graduate Engineer Trainee Placement', career: 'Plant Operations & Turnarounds' },
+            ].map((node) => (
+              <div
+                key={node.id}
+                onClick={() => setSelectedGraphNode(node.id)}
+                style={{
+                  background: selectedGraphNode === node.id ? '#1e3a8a' : '#0f172a',
+                  border: selectedGraphNode === node.id ? '1px solid #38bdf8' : '1px solid #1e293b',
+                  borderRadius: 8,
+                  padding: 14,
+                  cursor: 'pointer',
+                }}
+              >
+                <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#f8fafc', marginBottom: 4 }}>
+                  {node.title}
+                </div>
+                <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                  <strong style={{ color: '#64748b' }}>Prerequisite:</strong> {node.prereq}
+                </div>
+                <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                  <strong style={{ color: '#38bdf8' }}>Leads to:</strong> {node.next}
+                </div>
+                <div style={{ fontSize: '0.72rem', color: '#34d399', marginTop: 4 }}>
+                  <strong>Placement:</strong> {node.career}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}

@@ -114,3 +114,4 @@ export function ChemSimLogo({ size = 28, showWordmark = true, className = '' }: 
 }
 
 export default ChemSimLogo;
+
